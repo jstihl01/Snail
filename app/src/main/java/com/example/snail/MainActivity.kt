@@ -1,6 +1,7 @@
 package com.example.snail
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,10 +18,15 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.snail.ui.screens.NuevaRutinaScreen
 import com.example.snail.ui.theme.SnailTheme
 
 class MainActivity : ComponentActivity() {
@@ -29,14 +35,31 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SnailTheme {
-                MainScreen()
+                var currentScreen by rememberSaveable { mutableStateOf(AppScreen.MAIN) }
+
+                BackHandler(enabled = currentScreen != AppScreen.MAIN) {
+                    currentScreen = AppScreen.MAIN
+                }
+
+                when (currentScreen) {
+                    AppScreen.MAIN -> MainScreen(
+                        onNewRoutine = { currentScreen = AppScreen.NEW_ROUTINE }
+                    )
+
+                    AppScreen.NEW_ROUTINE -> NuevaRutinaScreen()
+                }
             }
         }
     }
 }
 
+private enum class AppScreen {
+    MAIN,
+    NEW_ROUTINE
+}
+
 @Composable
-private fun MainScreen() {
+private fun MainScreen(onNewRoutine: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -50,7 +73,7 @@ private fun MainScreen() {
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
             OutlinedButton(
-                onClick = {},
+                onClick = onNewRoutine,
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 4.dp),
