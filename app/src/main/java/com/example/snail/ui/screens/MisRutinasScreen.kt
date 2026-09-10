@@ -44,7 +44,8 @@ import com.example.snail.ui.theme.SnailLightGray
 fun MisRutinasScreen(
     routines: List<SavedRoutine>,
     onBack: () -> Unit,
-    onDeleteRoutine: (Long) -> Unit
+    onDeleteRoutine: (Long) -> Unit,
+    onStart: (SavedRoutine) -> Unit
 ) {
     var selectedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
 
@@ -168,7 +169,9 @@ fun MisRutinasScreen(
             }
 
             Button(
-                onClick = {},
+                onClick = {
+                    routines.firstOrNull { it.id == selectedRoutineId }?.let(onStart)
+                },
                 enabled = selectedRoutineId != null,
                 modifier = Modifier
                     .weight(1f)

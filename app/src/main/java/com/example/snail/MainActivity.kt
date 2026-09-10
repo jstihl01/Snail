@@ -5,36 +5,23 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.example.snail.data.ExerciseStorage
 import com.example.snail.data.RoutineStorage
+import com.example.snail.data.WorkoutStorage
 import com.example.snail.ui.models.RoutineExercise
 import com.example.snail.ui.models.SavedRoutine
+import com.example.snail.ui.models.SavedWorkout
 import com.example.snail.ui.screens.AñadirEjercicioScreen
 import com.example.snail.ui.screens.ExerciseItem
 import com.example.snail.ui.screens.MisRutinasScreen
+import com.example.snail.ui.screens.MainScreen
+import com.example.snail.ui.screens.NuevoEntrenamientoScreen
 import com.example.snail.ui.screens.NuevaRutinaScreen
 import com.example.snail.ui.theme.SnailTheme
 
@@ -47,12 +34,18 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val storedRoutines = remember { RoutineStorage.load(context) }
                 val storedExercises = remember { ExerciseStorage.load(context) }
+                val storedWorkouts = remember { WorkoutStorage.load(context) }
                 var currentScreen by rememberSaveable { mutableStateOf(AppScreen.MAIN) }
                 var routineName by rememberSaveable { mutableStateOf("") }
                 var exerciseDrafts by remember { mutableStateOf(storedExercises) }
                 var routineExercises by remember { mutableStateOf(emptyList<RoutineExercise>()) }
                 var nextRoutineExerciseId by rememberSaveable { mutableStateOf(0L) }
                 var savedRoutines by remember { mutableStateOf(storedRoutines) }
+                var activeTrainingRoutine by remember { mutableStateOf<SavedRoutine?>(null) }
+                var savedWorkouts by remember { mutableStateOf(storedWorkouts) }
+                var nextWorkoutId by rememberSaveable {
+                    mutableStateOf((storedWorkouts.maxOfOrNull { it.id } ?: -1L) + 1L)
+                }
                 var nextRoutineId by rememberSaveable {
                     mutableStateOf((storedRoutines.maxOfOrNull { it.id } ?: -1L) + 1L)
                 }
@@ -78,14 +71,24 @@ class MainActivity : ComponentActivity() {
                             currentScreen = AppScreen.NEW_ROUTINE
                         }
                         AppScreen.NEW_ROUTINE -> cancelNewRoutine()
+                        AppScreen.NEW_TRAINING -> {
+                            activeTrainingRoutine = null
+                            currentScreen = AppScreen.TRAINING
+                        }
                         else -> currentScreen = AppScreen.MAIN
                     }
                 }
 
                 when (currentScreen) {
                     AppScreen.MAIN -> MainScreen(
+                        workouts = savedWorkouts,
                         onNewRoutine = { currentScreen = AppScreen.NEW_ROUTINE },
-                        onNewTraining = { currentScreen = AppScreen.TRAINING }
+                        onNewTraining = { currentScreen = AppScreen.TRAINING },
+                        onDeleteWorkout = { workoutId ->
+                            val updatedWorkouts = savedWorkouts.filterNot { it.id == workoutId }
+                            savedWorkouts = updatedWorkouts
+                            WorkoutStorage.save(context, updatedWorkouts)
+                        }
                     )
 
                     AppScreen.NEW_ROUTINE -> NuevaRutinaScreen(
@@ -145,8 +148,34 @@ class MainActivity : ComponentActivity() {
                             val updatedRoutines = savedRoutines.filterNot { it.id == routineId }
                             savedRoutines = updatedRoutines
                             RoutineStorage.save(context, updatedRoutines)
+                        },
+                        onStart = { routine ->
+                            activeTrainingRoutine = routine
+                            currentScreen = AppScreen.NEW_TRAINING
                         }
                     )
+
+                    AppScreen.NEW_TRAINING -> activeTrainingRoutine?.let { routine ->
+                        NuevoEntrenamientoScreen(
+                            routine = routine,
+                            onBack = {
+                                activeTrainingRoutine = null
+                                currentScreen = AppScreen.TRAINING
+                            },
+                            onSave = { completedExercises ->
+                                val updatedWorkouts = savedWorkouts + SavedWorkout(
+                                    id = nextWorkoutId++,
+                                    routineName = routine.name,
+                                    completedAt = System.currentTimeMillis(),
+                                    exercises = completedExercises
+                                )
+                                savedWorkouts = updatedWorkouts
+                                WorkoutStorage.save(context, updatedWorkouts)
+                                activeTrainingRoutine = null
+                                currentScreen = AppScreen.MAIN
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -157,52 +186,6 @@ private enum class AppScreen {
     MAIN,
     NEW_ROUTINE,
     NEW_EXERCISE,
-    TRAINING
-}
-
-@Composable
-private fun MainScreen(
-    onNewRoutine: () -> Unit,
-    onNewTraining: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 16.dp)
-        ) {
-            OutlinedButton(
-                onClick = onNewRoutine,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 4.dp),
-                border = BorderStroke(1.dp, Color.White),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
-                    contentColor = Color.White
-                )
-            ) {
-                Text("+ Rutina")
-            }
-
-            Button(
-                onClick = onNewTraining,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
-                )
-            ) {
-                Text("+ Entrenamiento")
-            }
-        }
-    }
+    TRAINING,
+    NEW_TRAINING
 }
