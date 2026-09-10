@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,9 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.snail.ui.components.TrashIcon
 import com.example.snail.ui.models.SavedRoutine
 import com.example.snail.ui.theme.SnailDarkGray
 import com.example.snail.ui.theme.SnailLightGray
@@ -42,7 +43,8 @@ import com.example.snail.ui.theme.SnailLightGray
 @Composable
 fun MisRutinasScreen(
     routines: List<SavedRoutine>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDeleteRoutine: (Long) -> Unit
 ) {
     var selectedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
 
@@ -78,13 +80,30 @@ fun MisRutinasScreen(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = routine.name,
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        color = foregroundColor,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (selectedRoutineId == routine.id) {
+                                    selectedRoutineId = null
+                                }
+                                onDeleteRoutine(routine.id)
+                            }
+                        ) {
+                            TrashIcon(
+                                tint = foregroundColor,
+                                contentDescription = "Eliminar rutina"
+                            )
+                        }
+
+                        Text(
+                            text = routine.name,
+                            modifier = Modifier.weight(1f),
+                            color = foregroundColor
+                        )
+                    }
 
                     Column(
                         modifier = Modifier
@@ -100,10 +119,10 @@ fun MisRutinasScreen(
                                 .fillMaxWidth()
                                 .height(IntrinsicSize.Min)
                         ) {
-                            TableCell("Ejercicio", Modifier.weight(1f), foregroundColor, bold = true)
-                            TableCell("Series", Modifier.weight(1f), foregroundColor, bold = true)
-                            TableCell("Reps.", Modifier.weight(1f), foregroundColor, bold = true)
-                            TableCell("RIR", Modifier.weight(1f), foregroundColor, bold = true)
+                            TableCell("Ejercicio", Modifier.weight(1f), foregroundColor)
+                            TableCell("Series", Modifier.weight(1f), foregroundColor)
+                            TableCell("Reps.", Modifier.weight(1f), foregroundColor)
+                            TableCell("RIR", Modifier.weight(1f), foregroundColor)
                         }
 
                         routine.exercises.forEach { exercise ->
@@ -172,7 +191,6 @@ private fun TableCell(
     text: String,
     modifier: Modifier = Modifier,
     color: Color,
-    bold: Boolean = false,
     textAlign: TextAlign = TextAlign.Center
 ) {
     Box(
@@ -186,7 +204,6 @@ private fun TableCell(
             text = text,
             modifier = Modifier.fillMaxWidth(),
             color = color,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
             textAlign = textAlign
         )
     }

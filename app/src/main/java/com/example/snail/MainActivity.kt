@@ -58,9 +58,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 fun clearExerciseSelections() {
-                    val unselectedExercises = exerciseDrafts.map {
-                        it.copy(selected = false)
-                    }
+                    val unselectedExercises = exerciseDrafts
+                        .filter { it.name.isNotBlank() }
+                        .map { it.copy(selected = false) }
                     exerciseDrafts = unselectedExercises
                     ExerciseStorage.save(context, unselectedExercises)
                 }
@@ -140,7 +140,12 @@ class MainActivity : ComponentActivity() {
 
                     AppScreen.TRAINING -> MisRutinasScreen(
                         routines = savedRoutines,
-                        onBack = { currentScreen = AppScreen.MAIN }
+                        onBack = { currentScreen = AppScreen.MAIN },
+                        onDeleteRoutine = { routineId ->
+                            val updatedRoutines = savedRoutines.filterNot { it.id == routineId }
+                            savedRoutines = updatedRoutines
+                            RoutineStorage.save(context, updatedRoutines)
+                        }
                     )
                 }
             }

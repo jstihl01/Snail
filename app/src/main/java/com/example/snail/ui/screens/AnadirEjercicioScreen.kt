@@ -84,7 +84,14 @@ fun AñadirEjercicioScreen(
                         value = exercise.name,
                         onValueChange = { newName ->
                             onExerciseItemsChange(exerciseItems.map {
-                                if (it.id == exercise.id) it.copy(name = newName) else it
+                                if (it.id == exercise.id) {
+                                    it.copy(
+                                        name = newName,
+                                        selected = it.selected && newName.isNotBlank()
+                                    )
+                                } else {
+                                    it
+                                }
                             })
                         },
                         modifier = Modifier.weight(1f),
@@ -101,6 +108,7 @@ fun AñadirEjercicioScreen(
 
                     Checkbox(
                         checked = exercise.selected,
+                        enabled = exercise.name.isNotBlank(),
                         onCheckedChange = { selected ->
                             onExerciseItemsChange(exerciseItems.map {
                                 if (it.id == exercise.id) it.copy(selected = selected) else it
