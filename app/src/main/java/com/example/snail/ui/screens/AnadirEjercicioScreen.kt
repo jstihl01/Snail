@@ -41,6 +41,8 @@ import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.theme.SnailDarkGray
 import com.example.snail.ui.theme.SnailLightGray
 import com.example.snail.ui.theme.SnailMediumGray
+import java.text.Collator
+import java.util.Locale
 
 data class ExerciseItem(
     val id: Long,
@@ -48,6 +50,12 @@ data class ExerciseItem(
     val selected: Boolean = false,
     val confirmed: Boolean = false
 )
+
+fun List<ExerciseItem>.sortedByExerciseName(): List<ExerciseItem> {
+    val collator = Collator.getInstance(Locale.forLanguageTag("es"))
+    collator.strength = Collator.PRIMARY
+    return sortedWith { first, second -> collator.compare(first.name, second.name) }
+}
 
 @Composable
 fun AñadirEjercicioScreen(
@@ -82,9 +90,9 @@ fun AñadirEjercicioScreen(
                     if (exercise.name.isNotBlank()) {
                         onExerciseItemsChange(exerciseItems.map {
                             if (it.id == exercise.id) {
-                                it.copy(name = it.name.trim(), confirmed = true)
+                                it.copy(name = it.name.trim(), confirmed = true, selected = true)
                             } else it
-                        })
+                        }.sortedByExerciseName())
                     }
                 }
                 Row(
@@ -167,8 +175,11 @@ fun AñadirEjercicioScreen(
                         val nextId = (exerciseItems.maxOfOrNull { it.id } ?: -1L) + 1L
                         onExerciseItemsChange(
                             exerciseItems.map {
-                                it.copy(confirmed = it.name.isNotBlank())
-                            } + ExerciseItem(id = nextId)
+                                it.copy(
+                                    confirmed = it.name.isNotBlank(),
+                                    selected = it.selected || (!it.confirmed && it.name.isNotBlank())
+                                )
+                            }.sortedByExerciseName() + ExerciseItem(id = nextId)
                         )
                     },
                     enabled = canCreateExercise,
@@ -217,7 +228,8 @@ fun AñadirEjercicioScreen(
                                 .map { it.name.trim() }
                         )
                     },
-                    enabled = exerciseItems.any { it.selected && it.name.isNotBlank() },
+                    enabled = exerciseItems.none { !it.confirmed } &&
+                        exerciseItems.any { it.selected && it.name.isNotBlank() },
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp),

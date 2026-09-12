@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.example.snail.data.ExerciseStorage
+import com.example.snail.data.ExerciseNameMigration
 import com.example.snail.data.RoutineStorage
 import com.example.snail.data.WorkoutStorage
 import com.example.snail.ui.models.RoutineExercise
@@ -19,6 +20,7 @@ import com.example.snail.ui.models.SavedRoutine
 import com.example.snail.ui.models.SavedWorkout
 import com.example.snail.ui.screens.AñadirEjercicioScreen
 import com.example.snail.ui.screens.ExerciseItem
+import com.example.snail.ui.screens.sortedByExerciseName
 import com.example.snail.ui.screens.MisRutinasScreen
 import com.example.snail.ui.screens.MainScreen
 import com.example.snail.ui.screens.NuevoEntrenamientoScreen
@@ -28,6 +30,7 @@ import com.example.snail.ui.theme.SnailTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ExerciseNameMigration.apply(this)
         enableEdgeToEdge()
         setContent {
             SnailTheme {
@@ -97,7 +100,12 @@ class MainActivity : ComponentActivity() {
                         exerciseItems = routineExercises,
                         onExerciseItemsChange = { routineExercises = it },
                         onBack = { cancelNewRoutine() },
-                        onNewExercise = { currentScreen = AppScreen.NEW_EXERCISE },
+                        onNewExercise = {
+                            val sortedExercises = exerciseDrafts.sortedByExerciseName()
+                            exerciseDrafts = sortedExercises
+                            ExerciseStorage.save(context, sortedExercises)
+                            currentScreen = AppScreen.NEW_EXERCISE
+                        },
                         onSave = {
                             val updatedRoutines = savedRoutines + SavedRoutine(
                                 id = nextRoutineId++,
