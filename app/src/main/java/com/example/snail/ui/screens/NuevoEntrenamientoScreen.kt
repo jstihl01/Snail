@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,8 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,14 +38,17 @@ import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.CompletedExercise
 import com.example.snail.ui.models.CompletedSet
 import com.example.snail.ui.theme.SnailDarkGray
+import com.example.snail.ui.theme.routineColorFor
 import com.example.snail.ui.theme.SnailLightGray
 
 private data class TrainingSetInput(
     val number: Int,
     val kilograms: String = "",
-    val repetitions: String = "",
-    val completed: Boolean = false
-)
+    val repetitions: String = ""
+) {
+    val isComplete: Boolean
+        get() = kilograms.isNotBlank() && repetitions.isNotBlank()
+}
 
 private data class TrainingExerciseInput(
     val id: Long,
@@ -76,12 +78,13 @@ fun NuevoEntrenamientoScreen(
             }
         )
     }
-    val canSave = exercises.any { exercise -> exercise.sets.any { it.completed } }
+    val canSave = exercises.any { exercise -> exercise.sets.any { it.isComplete } }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .imePadding()
     ) {
         LazyColumn(
             modifier = Modifier
@@ -99,7 +102,7 @@ fun NuevoEntrenamientoScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(SnailDarkGray)
+                        .background(routineColorFor(routine.colorIndex))
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -110,9 +113,6 @@ fun NuevoEntrenamientoScreen(
                     )
 
                     exercise.sets.forEach { set ->
-                        val canComplete = set.kilograms.isNotBlank() &&
-                            set.repetitions.isNotBlank()
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -129,12 +129,7 @@ fun NuevoEntrenamientoScreen(
                                 value = set.kilograms,
                                 onValueChange = { value ->
                                     exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(
-                                            kilograms = value,
-                                            completed = it.completed &&
-                                                value.isNotBlank() &&
-                                                it.repetitions.isNotBlank()
-                                        )
+                                        it.copy(kilograms = value)
                                     }
                                 },
                                 placeholder = "KG",
@@ -146,12 +141,7 @@ fun NuevoEntrenamientoScreen(
                                 value = set.repetitions,
                                 onValueChange = { value ->
                                     exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(
-                                            repetitions = value,
-                                            completed = it.completed &&
-                                                it.kilograms.isNotBlank() &&
-                                                value.isNotBlank()
-                                        )
+                                        it.copy(repetitions = value)
                                     }
                                 },
                                 placeholder = exercise.targetRepetitions,
@@ -170,20 +160,6 @@ fun NuevoEntrenamientoScreen(
                                 )
                             }
 
-                            Checkbox(
-                                checked = set.completed,
-                                enabled = canComplete,
-                                onCheckedChange = { completed ->
-                                    exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(completed = completed)
-                                    }
-                                },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = Color.White,
-                                    uncheckedColor = Color.White,
-                                    checkmarkColor = Color.Black
-                                )
-                            )
                         }
                     }
                 }
@@ -212,7 +188,7 @@ fun NuevoEntrenamientoScreen(
                     onSave(
                         exercises.mapNotNull { exercise ->
                             val completedSets = exercise.sets
-                                .filter { it.completed }
+                                .filter { it.isComplete }
                                 .map { set ->
                                     CompletedSet(
                                         number = set.number,

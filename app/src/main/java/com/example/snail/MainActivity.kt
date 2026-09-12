@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 fun clearExerciseSelections() {
                     val unselectedExercises = exerciseDrafts
                         .filter { it.name.isNotBlank() }
-                        .map { it.copy(selected = false) }
+                        .map { it.copy(selected = false, confirmed = true) }
                     exerciseDrafts = unselectedExercises
                     ExerciseStorage.save(context, unselectedExercises)
                 }
@@ -152,6 +152,23 @@ class MainActivity : ComponentActivity() {
                         onStart = { routine ->
                             activeTrainingRoutine = routine
                             currentScreen = AppScreen.NEW_TRAINING
+                        },
+                        onRoutineColorChange = { routineId, colorIndex ->
+                            val routine = savedRoutines.first { it.id == routineId }
+                            val updatedRoutines = savedRoutines.map {
+                                if (it.id == routineId) it.copy(colorIndex = colorIndex) else it
+                            }
+                            savedRoutines = updatedRoutines
+                            RoutineStorage.save(context, updatedRoutines)
+                            val updatedWorkouts = savedWorkouts.map { workout ->
+                                if (workout.routineId == routineId ||
+                                    (workout.routineId == null &&
+                                        workout.routineName == routine.name)) {
+                                    workout.copy(colorIndex = colorIndex, routineId = routineId)
+                                } else workout
+                            }
+                            savedWorkouts = updatedWorkouts
+                            WorkoutStorage.save(context, updatedWorkouts)
                         }
                     )
 
@@ -167,6 +184,8 @@ class MainActivity : ComponentActivity() {
                                     id = nextWorkoutId++,
                                     routineName = routine.name,
                                     completedAt = System.currentTimeMillis(),
+                                    colorIndex = routine.colorIndex,
+                                    routineId = routine.id,
                                     exercises = completedExercises
                                 )
                                 savedWorkouts = updatedWorkouts

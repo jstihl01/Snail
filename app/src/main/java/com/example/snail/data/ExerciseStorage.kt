@@ -21,7 +21,10 @@ object ExerciseStorage {
                 val exerciseJson = exercisesJson.getJSONObject(index)
                 ExerciseItem(
                     id = exerciseJson.getLong("id"),
-                    name = exerciseJson.getString("name")
+                    name = exerciseJson.getString("name"),
+                    confirmed = exerciseJson.optBoolean(
+                        "confirmed", exerciseJson.getString("name").isNotBlank()
+                    )
                 )
             }
         }.getOrDefault(emptyList())
@@ -34,6 +37,7 @@ object ExerciseStorage {
                 JSONObject()
                     .put("id", exercise.id)
                     .put("name", exercise.name)
+                    .put("confirmed", exercise.confirmed)
             )
         }
 

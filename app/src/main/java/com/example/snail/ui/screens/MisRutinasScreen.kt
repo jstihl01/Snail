@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,12 +33,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.snail.ui.components.TrashIcon
+import com.example.snail.ui.components.PaletteIcon
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.SavedRoutine
 import com.example.snail.ui.theme.SnailDarkGray
+import com.example.snail.ui.theme.RoutineColors
 import com.example.snail.ui.theme.SnailLightGray
 
 @Composable
@@ -45,6 +51,7 @@ fun MisRutinasScreen(
     routines: List<SavedRoutine>,
     onBack: () -> Unit,
     onDeleteRoutine: (Long) -> Unit,
+    onRoutineColorChange: (Long, Int) -> Unit,
     onStart: (SavedRoutine) -> Unit
 ) {
     var selectedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -67,7 +74,9 @@ fun MisRutinasScreen(
                 key = { it.id }
             ) { routine ->
                 val selected = selectedRoutineId == routine.id
-                val backgroundColor = if (selected) Color.White else SnailDarkGray
+                val colorIndex = routine.colorIndex.takeIf { it in RoutineColors.indices } ?: 0
+                val routineColor = RoutineColors[colorIndex]
+                val backgroundColor = if (selected) Color.White else routineColor
                 val foregroundColor = if (selected) Color.Black else Color.White
 
                 Column(
@@ -104,6 +113,27 @@ fun MisRutinasScreen(
                             modifier = Modifier.weight(1f),
                             color = foregroundColor
                         )
+
+                        IconButton(
+                            onClick = {
+                                if (selected) selectedRoutineId = null
+                                onRoutineColorChange(
+                                    routine.id, (colorIndex + 1) % RoutineColors.size
+                                )
+                            },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Cambiar color de la rutina"
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(backgroundColor, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                PaletteIcon(tint = foregroundColor)
+                            }
+                        }
                     }
 
                     Column(

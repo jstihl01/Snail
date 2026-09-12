@@ -24,6 +24,7 @@ object RoutineStorage {
                 SavedRoutine(
                     id = routineJson.getLong("id"),
                     name = routineJson.getString("name"),
+                    colorIndex = routineJson.optInt("colorIndex", 0),
                     exercises = List(exercisesJson.length()) { exerciseIndex ->
                         val exerciseJson = exercisesJson.getJSONObject(exerciseIndex)
                         RoutineExercise(
@@ -57,6 +58,7 @@ object RoutineStorage {
                 JSONObject()
                     .put("id", routine.id)
                     .put("name", routine.name)
+                    .put("colorIndex", routine.colorIndex)
                     .put("exercises", exercisesJson)
             )
         }

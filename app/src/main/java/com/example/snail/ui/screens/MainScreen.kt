@@ -15,11 +15,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,10 +33,13 @@ import androidx.compose.ui.unit.dp
 import com.example.snail.ui.components.TrashIcon
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.SavedWorkout
-import com.example.snail.ui.theme.SnailDarkGray
+import com.example.snail.ui.theme.routineColorFor
 import java.time.Instant
+import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
 private val workoutDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
@@ -59,15 +63,25 @@ fun MainScreen(
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Bottom)
         ) {
-            items(
+            itemsIndexed(
                 items = workouts,
-                key = { it.id }
-            ) { workout ->
+                key = { _, workout -> workout.id }
+            ) { index, workout ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val previousWeek = workouts.getOrNull(index - 1)?.completedAt?.weekStart()
+                    val currentWeek = workout.completedAt.weekStart()
+                    if (previousWeek != null && currentWeek != null &&
+                        previousWeek != currentWeek) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            color = Color.Gray
+                        )
+                    }
+
                     Text(
                         text = workout.completedAt.toDisplayDateTime(),
                         modifier = Modifier.fillMaxWidth(),
@@ -78,7 +92,7 @@ fun MainScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(SnailDarkGray)
+                            .background(routineColorFor(workout.colorIndex))
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -161,6 +175,14 @@ fun MainScreen(
             }
         }
     }
+}
+
+private fun Long.weekStart(): LocalDate? {
+    if (this <= 0L) return null
+    return Instant.ofEpochMilli(this)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
+        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 }
 
 private fun Long.toDisplayDateTime(): String {

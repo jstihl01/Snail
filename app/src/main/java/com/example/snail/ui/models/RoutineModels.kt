@@ -11,7 +11,8 @@ data class RoutineExercise(
 data class SavedRoutine(
     val id: Long,
     val name: String,
-    val exercises: List<RoutineExercise>
+    val exercises: List<RoutineExercise>,
+    val colorIndex: Int = 0
 )
 
 data class CompletedSet(
@@ -30,5 +31,7 @@ data class SavedWorkout(
     val id: Long,
     val routineName: String,
     val completedAt: Long,
-    val exercises: List<CompletedExercise>
+    val exercises: List<CompletedExercise>,
+    val colorIndex: Int = 0,
+    val routineId: Long? = null
 )

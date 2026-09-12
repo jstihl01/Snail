@@ -2,26 +2,37 @@ package com.example.snail.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,7 +45,8 @@ import com.example.snail.ui.theme.SnailMediumGray
 data class ExerciseItem(
     val id: Long,
     val name: String = "",
-    val selected: Boolean = false
+    val selected: Boolean = false,
+    val confirmed: Boolean = false
 )
 
 @Composable
@@ -45,11 +57,13 @@ fun AñadirEjercicioScreen(
     onAdd: (List<String>) -> Unit
 ) {
     val canCreateExercise = exerciseItems.none { it.name.isBlank() }
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .imePadding()
     ) {
         LazyColumn(
             modifier = Modifier
@@ -62,10 +76,29 @@ fun AñadirEjercicioScreen(
                 items = exerciseItems,
                 key = { it.id }
             ) { exercise ->
+                var hadFocus by remember(exercise.id) { mutableStateOf(false) }
+                val foregroundColor = if (exercise.selected) Color.Black else Color.White
+                fun confirmName() {
+                    if (exercise.name.isNotBlank()) {
+                        onExerciseItemsChange(exerciseItems.map {
+                            if (it.id == exercise.id) {
+                                it.copy(name = it.name.trim(), confirmed = true)
+                            } else it
+                        })
+                    }
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = exercise.confirmed && exercise.name.isNotBlank()) {
+                            onExerciseItemsChange(exerciseItems.map {
+                                if (it.id == exercise.id) it.copy(selected = !it.selected) else it
+                            })
+                        }
+                        .background(if (exercise.selected) Color.White else SnailDarkGray)
+                        .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -75,9 +108,16 @@ fun AñadirEjercicioScreen(
                             )
                         }
                     ) {
-                        TrashIcon()
+                        TrashIcon(tint = foregroundColor)
                     }
 
+                    if (exercise.confirmed) {
+                        Text(
+                            text = exercise.name,
+                            modifier = Modifier.weight(1f),
+                            color = foregroundColor
+                        )
+                    } else {
                     OutlinedTextField(
                         value = exercise.name,
                         onValueChange = { newName ->
@@ -92,7 +132,16 @@ fun AñadirEjercicioScreen(
                                 }
                             })
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { state ->
+                                if (state.isFocused) {
+                                    hadFocus = true
+                                } else if (hadFocus) {
+                                    hadFocus = false
+                                    confirmName()
+                                }
+                            },
                         placeholder = {
                             Text(
                                 text = "Nombre del Ejercicio",
@@ -101,23 +150,14 @@ fun AñadirEjercicioScreen(
                             )
                         },
                         textStyle = TextStyle(textAlign = TextAlign.Start),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            confirmName()
+                            focusManager.clearFocus()
+                        }),
                         singleLine = true
                     )
-
-                    Checkbox(
-                        checked = exercise.selected,
-                        enabled = exercise.name.isNotBlank(),
-                        onCheckedChange = { selected ->
-                            onExerciseItemsChange(exerciseItems.map {
-                                if (it.id == exercise.id) it.copy(selected = selected) else it
-                            })
-                        },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = Color.White,
-                            uncheckedColor = Color.White,
-                            checkmarkColor = Color.Black
-                        )
-                    )
+                    }
                 }
             }
 
@@ -125,7 +165,11 @@ fun AñadirEjercicioScreen(
                 OutlinedButton(
                     onClick = {
                         val nextId = (exerciseItems.maxOfOrNull { it.id } ?: -1L) + 1L
-                        onExerciseItemsChange(exerciseItems + ExerciseItem(id = nextId))
+                        onExerciseItemsChange(
+                            exerciseItems.map {
+                                it.copy(confirmed = it.name.isNotBlank())
+                            } + ExerciseItem(id = nextId)
+                        )
                     },
                     enabled = canCreateExercise,
                     modifier = Modifier

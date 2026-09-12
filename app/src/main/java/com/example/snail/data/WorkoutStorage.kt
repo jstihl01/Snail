@@ -26,6 +26,11 @@ object WorkoutStorage {
                     id = workoutJson.getLong("id"),
                     routineName = workoutJson.getString("routineName"),
                     completedAt = workoutJson.optLong("completedAt", 0L),
+                    colorIndex = workoutJson.optInt("colorIndex", 0),
+                    routineId = if (workoutJson.has("routineId") &&
+                        !workoutJson.isNull("routineId")) {
+                        workoutJson.getLong("routineId")
+                    } else null,
                     exercises = List(exercisesJson.length()) { exerciseIndex ->
                         val exerciseJson = exercisesJson.getJSONObject(exerciseIndex)
                         val setsJson = exerciseJson.getJSONArray("sets")
@@ -73,6 +78,8 @@ object WorkoutStorage {
                     .put("id", workout.id)
                     .put("routineName", workout.routineName)
                     .put("completedAt", workout.completedAt)
+                    .put("colorIndex", workout.colorIndex)
+                    .put("routineId", workout.routineId ?: JSONObject.NULL)
                     .put("exercises", exercisesJson)
             )
         }
