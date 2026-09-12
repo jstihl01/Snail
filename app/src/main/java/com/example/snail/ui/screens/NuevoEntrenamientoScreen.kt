@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.snail.ui.models.SavedRoutine
+import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.CompletedExercise
 import com.example.snail.ui.models.CompletedSet
 import com.example.snail.ui.theme.SnailDarkGray
@@ -191,10 +191,7 @@ fun NuevoEntrenamientoScreen(
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+            modifier = Modifier.bottomActionsLayout()
         ) {
             OutlinedButton(
                 onClick = onBack,

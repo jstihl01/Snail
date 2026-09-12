@@ -3,11 +3,9 @@ package com.example.snail.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +26,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.snail.ui.components.TrashIcon
+import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.theme.SnailDarkGray
 import com.example.snail.ui.theme.SnailLightGray
 import com.example.snail.ui.theme.SnailMediumGray
@@ -57,8 +56,7 @@ fun AñadirEjercicioScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            contentPadding = PaddingValues(bottom = 4.dp)
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp)
         ) {
             items(
                 items = exerciseItems,
@@ -132,7 +130,7 @@ fun AñadirEjercicioScreen(
                     enabled = canCreateExercise,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(top = 4.dp),
                     border = BorderStroke(
                         1.dp,
                         if (canCreateExercise) Color.White else SnailMediumGray
@@ -150,10 +148,7 @@ fun AñadirEjercicioScreen(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+            modifier = Modifier.bottomActionsLayout()
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(

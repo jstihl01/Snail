@@ -5,11 +5,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,6 +28,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.snail.ui.components.TrashIcon
+import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.RoutineExercise
 import com.example.snail.ui.theme.SnailDarkGray
 import com.example.snail.ui.theme.SnailLightGray
@@ -76,7 +75,6 @@ fun NuevaRutinaScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(
@@ -163,10 +161,7 @@ fun NuevaRutinaScreen(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+            modifier = Modifier.bottomActionsLayout()
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
