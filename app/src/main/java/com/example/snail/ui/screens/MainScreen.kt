@@ -1,4 +1,5 @@
 package com.example.snail.ui.screens
+import com.example.snail.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -46,10 +47,13 @@ private val workoutDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm
 @Composable
 fun MainScreen(
     workouts: List<SavedWorkout>,
+    canStartTraining: Boolean,
     onNewRoutine: () -> Unit,
     onNewTraining: () -> Unit,
     onDeleteWorkout: (Long) -> Unit
 ) {
+    val confirmation = rememberConfirmationState()
+    ConfirmationHost(confirmation) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -100,7 +104,9 @@ fun MainScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { onDeleteWorkout(workout.id) }) {
+                        IconButton(onClick = {
+                            confirmation.request(DeleteConfirmation) { onDeleteWorkout(workout.id) }
+                        }) {
                             TrashIcon(contentDescription = "Eliminar entrenamiento")
                         }
                         Text(
@@ -163,18 +169,23 @@ fun MainScreen(
 
             Button(
                 onClick = onNewTraining,
+                enabled = canStartTraining,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 4.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
-                    contentColor = Color.Black
+                    contentColor = Color.Black,
+                    disabledContainerColor = com.example.snail.ui.theme.SnailDarkGray,
+                    disabledContentColor = com.example.snail.ui.theme.SnailLightGray
                 )
             ) {
                 Text("+ Entrenamiento")
             }
         }
     }
+}
+
 }
 
 private fun Long.weekStart(): LocalDate? {

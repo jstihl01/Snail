@@ -1,4 +1,5 @@
 package com.example.snail.ui.screens
+import com.example.snail.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -54,8 +55,10 @@ fun MisRutinasScreen(
     onRoutineColorChange: (Long, Int) -> Unit,
     onStart: (SavedRoutine) -> Unit
 ) {
+    val confirmation = rememberConfirmationState()
     var selectedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
 
+    ConfirmationHost(confirmation) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -96,10 +99,12 @@ fun MisRutinasScreen(
                     ) {
                         IconButton(
                             onClick = {
+                                confirmation.request(DeleteConfirmation) {
                                 if (selectedRoutineId == routine.id) {
                                     selectedRoutineId = null
                                 }
                                 onDeleteRoutine(routine.id)
+                                }
                             }
                         ) {
                             TrashIcon(
@@ -214,6 +219,8 @@ fun MisRutinasScreen(
             }
         }
     }
+}
+
 }
 
 @Composable

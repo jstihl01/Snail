@@ -1,4 +1,6 @@
 package com.example.snail.ui.screens
+import com.example.snail.ui.components.*
+import androidx.activity.compose.BackHandler
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.snail.ui.models.SavedRoutine
+import com.example.snail.ui.models.SavedWorkout
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.CompletedExercise
 import com.example.snail.ui.models.CompletedSet
@@ -43,6 +46,7 @@ import com.example.snail.ui.theme.SnailLightGray
 
 private data class TrainingSetInput(
     val number: Int,
+    val kilogramsPlaceholder: String = "",
     val kilograms: String = "",
     val repetitions: String = ""
 ) {
@@ -61,25 +65,48 @@ private data class TrainingExerciseInput(
 @Composable
 fun NuevoEntrenamientoScreen(
     routine: SavedRoutine,
+    previousWorkout: SavedWorkout?,
     onBack: () -> Unit,
     onSave: (List<CompletedExercise>) -> Unit
 ) {
     var exercises by remember(routine.id) {
         mutableStateOf(
-            routine.exercises.map { exercise ->
+            routine.exercises.mapIndexed { exerciseIndex, exercise ->
+                val occurrence = routine.exercises.take(exerciseIndex).count {
+                    it.name == exercise.name
+                }
+                val previousExercise = previousWorkout?.exercises
+                    ?.filter { it.name == exercise.name }
+                    ?.getOrNull(occurrence)
                 val setCount = exercise.series.toIntOrNull()?.coerceAtLeast(0) ?: 0
                 TrainingExerciseInput(
                     id = exercise.id,
                     name = exercise.name,
                     targetRepetitions = exercise.repetitions,
                     rir = exercise.rir,
-                    sets = List(setCount) { index -> TrainingSetInput(number = index + 1) }
+                    sets = List(setCount) { index ->
+                        val previousSet = previousExercise?.sets
+                            ?.firstOrNull { it.number == index + 1 }
+                        TrainingSetInput(
+                            number = index + 1,
+                            kilogramsPlaceholder = previousSet?.kilograms
+                                ?.takeIf { it.isNotBlank() } ?: "..."
+                        )
+                    }
                 )
             }
         )
     }
+    val confirmation = rememberConfirmationState()
+    val requestExit: () -> Unit = {
+        if (exercises.any { exercise -> exercise.sets.any {
+            it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty()
+        } }) confirmation.request(ExitConfirmation, onBack) else onBack()
+    }
+    BackHandler { requestExit() }
     val canSave = exercises.any { exercise -> exercise.sets.any { it.isComplete } }
 
+    ConfirmationHost(confirmation) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -112,6 +139,17 @@ fun NuevoEntrenamientoScreen(
                         color = Color.White
                     )
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TrainingColumnTitle("Serie", Modifier.weight(0.65f))
+                        TrainingColumnTitle("KG", Modifier.weight(1f))
+                        TrainingColumnTitle("Reps.", Modifier.weight(1f))
+                        TrainingColumnTitle("RIR", Modifier.weight(0.55f))
+                    }
+
                     exercise.sets.forEach { set ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -120,7 +158,7 @@ fun NuevoEntrenamientoScreen(
                         ) {
                             Text(
                                 text = set.number.toString(),
-                                modifier = Modifier.weight(0.35f),
+                                modifier = Modifier.weight(0.65f),
                                 color = Color.White,
                                 textAlign = TextAlign.Center
                             )
@@ -132,7 +170,7 @@ fun NuevoEntrenamientoScreen(
                                         it.copy(kilograms = value)
                                     }
                                 },
-                                placeholder = "KG",
+                                placeholder = set.kilogramsPlaceholder,
                                 keyboardType = KeyboardType.Decimal,
                                 modifier = Modifier.weight(1f)
                             )
@@ -170,7 +208,7 @@ fun NuevoEntrenamientoScreen(
             modifier = Modifier.bottomActionsLayout()
         ) {
             OutlinedButton(
-                onClick = onBack,
+                onClick = requestExit,
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 4.dp),
@@ -223,6 +261,18 @@ fun NuevoEntrenamientoScreen(
             }
         }
     }
+}
+
+}
+
+@Composable
+private fun TrainingColumnTitle(text: String, modifier: Modifier) {
+    Text(
+        text = text,
+        modifier = modifier,
+        color = Color.White,
+        textAlign = TextAlign.Center
+    )
 }
 
 @Composable

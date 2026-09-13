@@ -1,4 +1,5 @@
 package com.example.snail.ui.screens
+import com.example.snail.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -64,9 +65,11 @@ fun AñadirEjercicioScreen(
     onBack: () -> Unit,
     onAdd: (List<String>) -> Unit
 ) {
+    val confirmation = rememberConfirmationState()
     val canCreateExercise = exerciseItems.none { it.name.isBlank() }
     val focusManager = LocalFocusManager.current
 
+    ConfirmationHost(confirmation) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -111,9 +114,11 @@ fun AñadirEjercicioScreen(
                 ) {
                     IconButton(
                         onClick = {
+                            confirmation.request(DeleteConfirmation) {
                             onExerciseItemsChange(
                                 exerciseItems.filterNot { it.id == exercise.id }
                             )
+                            }
                         }
                     ) {
                         TrashIcon(tint = foregroundColor)
@@ -245,4 +250,5 @@ fun AñadirEjercicioScreen(
             }
         }
     }
+}
 }

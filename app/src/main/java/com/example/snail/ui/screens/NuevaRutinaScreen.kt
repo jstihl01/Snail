@@ -1,4 +1,6 @@
 package com.example.snail.ui.screens
+import com.example.snail.ui.components.*
+import androidx.activity.compose.BackHandler
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -44,10 +46,18 @@ fun NuevaRutinaScreen(
     onNewExercise: () -> Unit,
     onSave: () -> Unit
 ) {
-    val canSave = routineName.isNotBlank() && exerciseItems.all { exercise ->
+    val confirmation = rememberConfirmationState()
+    val requestExit: () -> Unit = {
+        if (routineName.isNotEmpty() || exerciseItems.isNotEmpty()) {
+            confirmation.request(ExitConfirmation, onBack)
+        } else onBack()
+    }
+    BackHandler { requestExit() }
+    val canSave = routineName.isNotBlank() && exerciseItems.isNotEmpty() && exerciseItems.all { exercise ->
         exercise.series.isNotBlank() && exercise.repetitions.isNotBlank()
     }
 
+    ConfirmationHost(confirmation) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -167,7 +177,7 @@ fun NuevaRutinaScreen(
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
-                    onClick = onBack,
+                    onClick = requestExit,
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 4.dp),
@@ -198,6 +208,8 @@ fun NuevaRutinaScreen(
             }
         }
     }
+}
+
 }
 
 @Composable

@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
                 when (currentScreen) {
                     AppScreen.MAIN -> MainScreen(
                         workouts = savedWorkouts,
+                        canStartTraining = savedRoutines.isNotEmpty(),
                         onNewRoutine = { currentScreen = AppScreen.NEW_ROUTINE },
                         onNewTraining = { currentScreen = AppScreen.TRAINING },
                         onDeleteWorkout = { workoutId ->
@@ -183,6 +184,12 @@ class MainActivity : ComponentActivity() {
                     AppScreen.NEW_TRAINING -> activeTrainingRoutine?.let { routine ->
                         NuevoEntrenamientoScreen(
                             routine = routine,
+                            previousWorkout = savedWorkouts
+                                .filter {
+                                    it.routineId == routine.id ||
+                                        (it.routineId == null && it.routineName == routine.name)
+                                }
+                                .maxByOrNull { it.completedAt },
                             onBack = {
                                 activeTrainingRoutine = null
                                 currentScreen = AppScreen.TRAINING
