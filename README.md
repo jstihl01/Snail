@@ -1,5 +1,11 @@
 # Snail
 
+<p align="center">
+  <img src="icon/snailtracker_icon.png" alt="Logo de Snail" width="160" />
+</p>
+
+<p align="center">Strength Notes &amp; Activity Improvement Log</p>
+
 App Android para crear rutinas de fuerza y registrar entrenamientos. Los ejercicios, rutinas y entrenamientos se guardan en el dispositivo y permanecen tras reiniciar la app.
 
 <p align="center">
@@ -10,12 +16,47 @@ App Android para crear rutinas de fuerza y registrar entrenamientos. Los ejercic
 
 Android 7.0 o superior. Descarga el APK, ábrelo y permite la instalación desde esa fuente si Android lo solicita.
 
-## Funcionamiento
+## Crear una rutina
 
-- **Ejercicios:** crea un nombre y confírmalo con el teclado o al salir del campo. Selecciona uno o varios tocándolos para añadirlos a una rutina, incluso repetidos. El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio; los ejercicios sin nombre válido se descartan al cancelar o añadir. No se puede añadir mientras haya uno en creación.
-- **Rutinas:** pulsa **+ Rutina**, escribe un nombre y añade ejercicios. Define **Series** y **Reps.** para cada uno; **RIR** (repeticiones en reserva) es opcional. Puedes retirar ejercicios. Guardar exige un nombre, al menos un ejercicio y todos los valores obligatorios completos.
-- **Selección y colores:** **+ Entrenamiento**, disponible sólo si hay rutinas, muestra sus ejercicios y valores en tablas. Selecciona una rutina y pulsa **Empezar**. La paleta alterna entre gris y siete colores; cambiarlo actualiza también sus entrenamientos anteriores y los fondos durante el entrenamiento.
-- **Entrenamiento:** cada ejercicio muestra una fila por serie con su número, campos numéricos **KG** y **Reps.**, y el **RIR** previsto. KG muestra como referencia el valor de la misma serie del último entrenamiento de esa rutina, o `...`; Reps. muestra el objetivo de la rutina. Guardar registra sólo las series con ambos campos completados y vuelve al inicio; requiere al menos una serie completa.
-- **Historial:** el inicio muestra los entrenamientos con fecha, hora, ejercicios, series, KG y repeticiones. Los más recientes quedan abajo, sobre los botones principales; una línea separa semanas distintas.
-- **Borrado y cancelación:** las papeleras del catálogo, las rutinas y el historial piden confirmación antes de borrar permanentemente. Cancelar una rutina o un entrenamiento con datos pide confirmación y descarta el borrador. Cancelar o añadir ejercicios limpia su selección. El botón atrás vuelve a la pantalla anterior; en una confirmación la cierra sin ejecutar la acción.
-- **Interfaz:** fondo negro, texto claro, listas desplazables y teclado numérico para Series, Reps., RIR y KG. Las confirmaciones bloquean el resto de la pantalla.
+1. En el inicio, pulsa **+ Rutina**.
+2. Escribe el **Nombre de la Rutina**.
+3. Pulsa **Añadir Ejercicio** para abrir el catálogo.
+4. Si necesitas un ejercicio nuevo, pulsa **Crear Ejercicio**, escribe su nombre y confírmalo con el teclado o al salir del campo. El nombre pasa a ser texto no editable y el ejercicio queda seleccionado.
+5. Toca los ejercicios que quieras seleccionar o desmarcar y pulsa **Añadir**. Puedes seleccionar varios y volver al catálogo para añadir más, incluso repetir ejercicios.
+6. De vuelta en la rutina, completa **Series** y **Reps.** de cada ejercicio. **RIR** (repeticiones en reserva) es opcional. La papelera retira un ejercicio de esta rutina sin borrarlo del catálogo.
+7. Pulsa **Guardar** para conservar la rutina y volver al inicio. Se habilita con un nombre válido, al menos un ejercicio y Series y Reps. completas en todos ellos.
+
+El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. **Añadir** queda deshabilitado mientras haya uno en creación; **Crear Ejercicio**, mientras haya uno sin nombre válido. Cancelar o añadir descarta los nombres vacíos o sólo con espacios y limpia la selección.
+
+## Empezar un entrenamiento
+
+1. En el inicio, pulsa **+ Entrenamiento**. Se habilita cuando hay alguna rutina guardada.
+2. Consulta las rutinas y sus tablas de ejercicios, Series, Reps. y RIR.
+3. Opcionalmente, pulsa la **paleta** de una rutina para alternar entre gris y siete colores. El color se conserva y se aplica a los ejercicios durante el entrenamiento y a todo su historial, incluidos los entrenamientos anteriores.
+4. Toca una rutina para seleccionarla: su fondo pasa a blanco. Tócala otra vez para desmarcarla o elige otra para sustituir la selección.
+5. Pulsa **Empezar**, disponible cuando hay una rutina seleccionada.
+
+## Registrar las series
+
+1. Cada ejercicio muestra una fila por serie, con **Serie**, **KG**, **Reps.** y el **RIR** previsto, no editable.
+2. Introduce los **KG** y las **Reps.** realizadas. El placeholder de KG muestra el valor de esa serie y ejercicio del último entrenamiento de la rutina, o `...` si no existe. El de Reps. muestra el objetivo definido en la rutina.
+3. Desplázate por la lista para completar las series realizadas. Los valores de referencia no cuentan como datos introducidos.
+4. Pulsa **Guardar** para volver al inicio. Se habilita cuando al menos una serie tiene KG y Reps.; sólo se guardan las series con ambos campos completos.
+
+## Consultar el historial
+
+El inicio muestra los entrenamientos guardados con **fecha y hora** encima de cada recuadro. Dentro aparecen la rutina y sus ejercicios, con el número de cada serie, KG y repeticiones realizadas.
+
+Los entrenamientos más recientes quedan abajo, sobre **+ Rutina** y **+ Entrenamiento**. Puedes desplazarte para consultar los anteriores; una línea separa los de distintas semanas.
+
+## Cancelar o borrar
+
+- **Cancelar** o el botón atrás vuelve a la pantalla anterior. En una rutina o entrenamiento con datos, pide confirmación antes de descartar el borrador; cancelar la rutina la deja vacía para empezar desde cero.
+- Las **papeleras** del catálogo, las rutinas y el historial piden confirmación antes de borrar permanentemente el elemento correspondiente.
+- En una confirmación, **Sí** ejecuta la acción; **No** o el botón atrás la cierra sin cambios. El resto de la pantalla queda bloqueado.
+
+## Datos e interfaz
+
+Los ejercicios del catálogo se reutilizan entre rutinas. Ejercicios, rutinas, colores y entrenamientos se almacenan localmente y permanecen tras reiniciar la app.
+
+La interfaz utiliza fondo negro, texto claro y listas desplazables. Series, Reps., RIR y KG abren un teclado numérico.
