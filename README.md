@@ -59,4 +59,4 @@ Los entrenamientos más recientes quedan abajo, sobre **+ Rutina** y **+ Entrena
 
 Los ejercicios del catálogo se reutilizan entre rutinas. Ejercicios, rutinas, colores y entrenamientos se almacenan localmente y permanecen tras reiniciar la app.
 
-La interfaz utiliza fondo negro, texto claro y listas desplazables. Series, Reps., RIR y KG abren un teclado numérico.
+La interfaz utiliza orientación vertical, fondo negro, texto claro y listas desplazables. Series, Reps., RIR y KG abren un teclado numérico.
