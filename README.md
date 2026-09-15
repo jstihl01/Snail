@@ -32,7 +32,7 @@ El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. 
 
 1. En el inicio, pulsa **+ Entrenamiento**. Se habilita cuando hay alguna rutina guardada.
 2. Consulta las rutinas y sus tablas de ejercicios, Series, Reps. y RIR.
-3. Opcionalmente, pulsa la **paleta** de una rutina para alternar entre gris y siete colores. El color se conserva y se aplica a los ejercicios durante el entrenamiento y a todo su historial, incluidos los entrenamientos anteriores.
+3. Opcionalmente, abre la **paleta** y elige visualmente entre gris y diez colores. El color se conserva y se aplica a los ejercicios durante el entrenamiento y a todo su historial, incluidos los entrenamientos anteriores.
 4. Toca una rutina para seleccionarla: su fondo pasa a blanco. Tócala otra vez para desmarcarla o elige otra para sustituir la selección.
 5. Pulsa **Empezar**, disponible cuando hay una rutina seleccionada.
 
@@ -45,7 +45,7 @@ El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. 
 
 ## Consultar el historial
 
-El inicio muestra los entrenamientos guardados con **fecha y hora** encima de cada recuadro. Dentro aparecen la rutina y sus ejercicios, con el número de cada serie, KG y repeticiones realizadas.
+El inicio muestra los entrenamientos guardados con **fecha y hora** encima de cada recuadro. Dentro aparecen la rutina y sus ejercicios, con el número de cada serie, KG y repeticiones realizadas; el color de la rutina se muestra atenuado para facilitar la lectura del historial.
 
 El historial se abre desde el fondo, con los entrenamientos más recientes abajo, sobre **+ Rutina** y **+ Entrenamiento**. Puedes desplazarte para consultar los anteriores; una línea separa los de distintas semanas.
 

@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.example.snail.ui.components.TrashIcon
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.SavedWorkout
-import com.example.snail.ui.theme.routineColorFor
+import com.example.snail.ui.theme.routineHistoryColorFor
 import java.time.Instant
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -109,7 +109,7 @@ fun MainScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(routineColorFor(workout.colorIndex))
+                            .background(routineHistoryColorFor(workout.colorIndex))
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,11 +17,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -57,6 +61,7 @@ fun MisRutinasScreen(
 ) {
     val confirmation = rememberConfirmationState()
     var selectedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var openColorMenuRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     ConfirmationHost(confirmation) {
     Column(
@@ -119,24 +124,60 @@ fun MisRutinasScreen(
                             color = foregroundColor
                         )
 
-                        IconButton(
-                            onClick = {
-                                if (selected) selectedRoutineId = null
-                                onRoutineColorChange(
-                                    routine.id, (colorIndex + 1) % RoutineColors.size
-                                )
-                            },
-                            modifier = Modifier.semantics {
-                                contentDescription = "Cambiar color de la rutina"
-                            }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(backgroundColor, CircleShape),
-                                contentAlignment = Alignment.Center
+                        Box {
+                            IconButton(
+                                onClick = {
+                                    if (selected) selectedRoutineId = null
+                                    openColorMenuRoutineId = routine.id
+                                },
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Elegir color de la rutina"
+                                }
                             ) {
-                                PaletteIcon(tint = foregroundColor)
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(backgroundColor, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    PaletteIcon(tint = foregroundColor)
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = openColorMenuRoutineId == routine.id,
+                                onDismissRequest = { openColorMenuRoutineId = null },
+                                modifier = Modifier.requiredWidth(64.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                containerColor = Color.Black
+                            ) {
+                                RoutineColors.forEachIndexed { optionIndex, color ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Box(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(30.dp)
+                                                        .clip(CircleShape)
+                                                        .background(color)
+                                                        .border(
+                                                            width = if (colorIndex == optionIndex) 3.dp else 1.5.dp,
+                                                            color = Color.White,
+                                                            shape = CircleShape
+                                                        )
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            openColorMenuRoutineId = null
+                                            onRoutineColorChange(routine.id, optionIndex)
+                                        },
+                                        contentPadding = PaddingValues(0.dp)
+                                    )
+                                }
                             }
                         }
                     }
