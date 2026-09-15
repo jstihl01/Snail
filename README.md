@@ -38,10 +38,10 @@ El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. 
 
 ## Registrar las series
 
-1. Cada ejercicio muestra una fila por serie, con **Serie**, **KG**, **Reps.** y el **RIR** previsto, no editable.
-2. Introduce los **KG** y las **Reps.** realizadas. El placeholder de KG muestra el valor de esa serie y ejercicio del último entrenamiento de la rutina, o `...` si no existe. El de Reps. muestra el objetivo definido en la rutina.
-3. Desplázate por la lista para completar las series realizadas. Los valores de referencia no cuentan como datos introducidos.
-4. Pulsa **Guardar** para volver al inicio. Se habilita cuando al menos una serie tiene KG y Reps.; sólo se guardan las series con ambos campos completos.
+1. Cada ejercicio muestra una fila por serie con **Serie**, **KG**, **Reps.** y **RIR**. El botón **+** añade series adicionales.
+2. Introduce los KG, Reps. y RIR realizados como números enteros o decimales con coma. RIR es opcional.
+3. El placeholder de KG muestra en negrita el máximo histórico global del ejercicio, si existe. Los de Reps. y RIR muestran los objetivos definidos en la rutina.
+4. Pulsa **Guardar** para volver al inicio. Se habilita cuando al menos una serie tiene KG y Reps. válidos; sólo se guardan las series completas.
 
 ## Consultar el historial
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -32,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,49 +51,59 @@ private data class TrainingSetInput(
     val number: Int,
     val kilogramsPlaceholder: String = "",
     val kilograms: String = "",
-    val repetitions: String = ""
+    val repetitions: String = "",
+    val rir: String = ""
 ) {
     val isComplete: Boolean
-        get() = kilograms.isNotBlank() && repetitions.isNotBlank()
+        get() = kilograms.isValidDecimal() &&
+            repetitions.isValidDecimal() &&
+            (rir.isEmpty() || rir.isValidDecimal())
 }
 
 private data class TrainingExerciseInput(
     val id: Long,
     val name: String,
     val targetRepetitions: String,
-    val rir: String,
+    val targetRir: String,
     val sets: List<TrainingSetInput>
 )
 
 @Composable
 fun NuevoEntrenamientoScreen(
     routine: SavedRoutine,
-    previousWorkout: SavedWorkout?,
+    workouts: List<SavedWorkout>,
     onBack: () -> Unit,
     onSave: (List<CompletedExercise>) -> Unit
 ) {
-    var exercises by remember(routine.id) {
+    val globalKilogramsByExercise = remember(workouts) {
+        workouts
+            .flatMap { it.exercises }
+            .groupBy { it.name }
+            .mapValues { (_, completedExercises) ->
+                completedExercises
+                    .flatMap { it.sets }
+                    .mapNotNull { it.kilograms.toDecimalOrNull() }
+                    .maxOrNull()
+                    ?.stripTrailingZeros()
+                    ?.toPlainString()
+                    ?.replace('.', ',')
+            }
+            .filterValues { it != null }
+            .mapValues { it.value.orEmpty() }
+    }
+    var exercises by remember(routine.id, globalKilogramsByExercise) {
         mutableStateOf(
-            routine.exercises.mapIndexed { exerciseIndex, exercise ->
-                val occurrence = routine.exercises.take(exerciseIndex).count {
-                    it.name == exercise.name
-                }
-                val previousExercise = previousWorkout?.exercises
-                    ?.filter { it.name == exercise.name }
-                    ?.getOrNull(occurrence)
+            routine.exercises.map { exercise ->
                 val setCount = exercise.series.toIntOrNull()?.coerceAtLeast(0) ?: 0
                 TrainingExerciseInput(
                     id = exercise.id,
                     name = exercise.name,
                     targetRepetitions = exercise.repetitions,
-                    rir = exercise.rir,
+                    targetRir = exercise.rir,
                     sets = List(setCount) { index ->
-                        val previousSet = previousExercise?.sets
-                            ?.firstOrNull { it.number == index + 1 }
                         TrainingSetInput(
                             number = index + 1,
-                            kilogramsPlaceholder = previousSet?.kilograms
-                                ?.takeIf { it.isNotBlank() } ?: "..."
+                            kilogramsPlaceholder = globalKilogramsByExercise[exercise.name].orEmpty()
                         )
                     }
                 )
@@ -100,7 +113,7 @@ fun NuevoEntrenamientoScreen(
     val confirmation = rememberConfirmationState()
     val requestExit: () -> Unit = {
         if (exercises.any { exercise -> exercise.sets.any {
-            it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty()
+            it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty() || it.rir.isNotEmpty()
         } }) confirmation.request(ExitConfirmation, onBack) else onBack()
     }
     BackHandler { requestExit() }
@@ -147,7 +160,7 @@ fun NuevoEntrenamientoScreen(
                         TrainingColumnTitle("Serie", Modifier.weight(0.65f))
                         TrainingColumnTitle("KG", Modifier.weight(1f))
                         TrainingColumnTitle("Reps.", Modifier.weight(1f))
-                        TrainingColumnTitle("RIR", Modifier.weight(0.55f))
+                        TrainingColumnTitle("RIR", Modifier.weight(1f))
                     }
 
                     exercise.sets.forEach { set ->
@@ -171,7 +184,7 @@ fun NuevoEntrenamientoScreen(
                                     }
                                 },
                                 placeholder = set.kilogramsPlaceholder,
-                                keyboardType = KeyboardType.Decimal,
+                                boldPlaceholder = true,
                                 modifier = Modifier.weight(1f)
                             )
 
@@ -183,22 +196,52 @@ fun NuevoEntrenamientoScreen(
                                     }
                                 },
                                 placeholder = exercise.targetRepetitions,
-                                keyboardType = KeyboardType.Number,
                                 modifier = Modifier.weight(1f)
                             )
 
-                            Box(
-                                modifier = Modifier.weight(0.55f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = exercise.rir,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                            TrainingValueField(
+                                value = set.rir,
+                                onValueChange = { value ->
+                                    exercises = exercises.updateSet(exercise.id, set.number) {
+                                        it.copy(rir = value)
+                                    }
+                                },
+                                placeholder = exercise.targetRir,
+                                modifier = Modifier.weight(1f)
+                            )
 
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(0.65f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    exercises = exercises.addSet(
+                                        exerciseId = exercise.id,
+                                        kilogramsPlaceholder = exercise.sets
+                                            .firstOrNull()
+                                            ?.kilogramsPlaceholder
+                                            .orEmpty()
+                                    )
+                                }
+                            ) {
+                                Text(
+                                    text = "+",
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -232,7 +275,7 @@ fun NuevoEntrenamientoScreen(
                                         number = set.number,
                                         kilograms = set.kilograms.trim(),
                                         repetitions = set.repetitions.trim(),
-                                        rir = exercise.rir
+                                        rir = set.rir.trim()
                                     )
                                 }
                             if (completedSets.isEmpty()) {
@@ -280,25 +323,34 @@ private fun TrainingValueField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    keyboardType: KeyboardType,
+    boldPlaceholder: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            if (newValue.isDecimalInput()) onValueChange(newValue)
+        },
         modifier = modifier,
         placeholder = {
             Text(
                 text = placeholder,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontWeight = if (boldPlaceholder) FontWeight.Bold else FontWeight.Normal
             )
         },
         textStyle = TextStyle(textAlign = TextAlign.Center),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true
     )
 }
+
+private fun String.isDecimalInput(): Boolean = matches(Regex("\\d*(,\\d*)?"))
+
+private fun String.isValidDecimal(): Boolean = matches(Regex("\\d+(,\\d+)?"))
+
+private fun String.toDecimalOrNull() = replace(',', '.').toBigDecimalOrNull()
 
 private fun List<TrainingExerciseInput>.updateSet(
     exerciseId: Long,
@@ -310,6 +362,23 @@ private fun List<TrainingExerciseInput>.updateSet(
             sets = exercise.sets.map { set ->
                 if (set.number == setNumber) update(set) else set
             }
+        )
+    } else {
+        exercise
+    }
+}
+
+private fun List<TrainingExerciseInput>.addSet(
+    exerciseId: Long,
+    kilogramsPlaceholder: String
+): List<TrainingExerciseInput> = map { exercise ->
+    if (exercise.id == exerciseId) {
+        val nextSetNumber = (exercise.sets.maxOfOrNull { it.number } ?: 0) + 1
+        exercise.copy(
+            sets = exercise.sets + TrainingSetInput(
+                number = nextSetNumber,
+                kilogramsPlaceholder = kilogramsPlaceholder
+            )
         )
     } else {
         exercise
