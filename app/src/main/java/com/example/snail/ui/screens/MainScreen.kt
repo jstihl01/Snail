@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +55,16 @@ fun MainScreen(
     onDeleteWorkout: (Long) -> Unit
 ) {
     val confirmation = rememberConfirmationState()
+    val historyListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = workouts.lastIndex.coerceAtLeast(0)
+    )
+
+    LaunchedEffect(workouts.lastOrNull()?.id) {
+        if (workouts.isNotEmpty()) {
+            historyListState.scrollToItem(workouts.lastIndex)
+        }
+    }
+
     ConfirmationHost(confirmation) {
     Column(
         modifier = Modifier
@@ -60,6 +72,7 @@ fun MainScreen(
             .background(Color.Black)
     ) {
         LazyColumn(
+            state = historyListState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()

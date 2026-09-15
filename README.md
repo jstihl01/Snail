@@ -47,7 +47,7 @@ El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. 
 
 El inicio muestra los entrenamientos guardados con **fecha y hora** encima de cada recuadro. Dentro aparecen la rutina y sus ejercicios, con el número de cada serie, KG y repeticiones realizadas.
 
-Los entrenamientos más recientes quedan abajo, sobre **+ Rutina** y **+ Entrenamiento**. Puedes desplazarte para consultar los anteriores; una línea separa los de distintas semanas.
+El historial se abre desde el fondo, con los entrenamientos más recientes abajo, sobre **+ Rutina** y **+ Entrenamiento**. Puedes desplazarte para consultar los anteriores; una línea separa los de distintas semanas.
 
 ## Cancelar o borrar
 
