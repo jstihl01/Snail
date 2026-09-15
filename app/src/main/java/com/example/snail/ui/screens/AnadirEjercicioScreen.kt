@@ -33,10 +33,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.snail.ui.components.TrashIcon
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.theme.SnailDarkGray
@@ -49,6 +51,7 @@ data class ExerciseItem(
     val id: Long,
     val name: String = "",
     val selected: Boolean = false,
+    val selectionOrder: Int? = null,
     val confirmed: Boolean = false
 )
 
@@ -56,6 +59,16 @@ fun List<ExerciseItem>.sortedByExerciseName(): List<ExerciseItem> {
     val collator = Collator.getInstance(Locale.forLanguageTag("es"))
     collator.strength = Collator.PRIMARY
     return sortedWith { first, second -> collator.compare(first.name, second.name) }
+}
+
+private fun List<ExerciseItem>.normalizeSelectionOrder(): List<ExerciseItem> {
+    val orderedIds = filter { it.selected }
+        .sortedBy { it.selectionOrder ?: Int.MAX_VALUE }
+        .mapIndexed { index, exercise -> exercise.id to index + 1 }
+        .toMap()
+    return map { exercise ->
+        exercise.copy(selectionOrder = orderedIds[exercise.id])
+    }
 }
 
 @Composable
@@ -91,9 +104,16 @@ fun AñadirEjercicioScreen(
                 val foregroundColor = if (exercise.selected) Color.Black else Color.White
                 fun confirmName() {
                     if (exercise.name.isNotBlank()) {
+                        val nextSelectionOrder =
+                            (exerciseItems.mapNotNull { it.selectionOrder }.maxOrNull() ?: 0) + 1
                         onExerciseItemsChange(exerciseItems.map {
                             if (it.id == exercise.id) {
-                                it.copy(name = it.name.trim(), confirmed = true, selected = true)
+                                it.copy(
+                                    name = it.name.trim(),
+                                    confirmed = true,
+                                    selected = true,
+                                    selectionOrder = it.selectionOrder ?: nextSelectionOrder
+                                )
                             } else it
                         }.sortedByExerciseName())
                     }
@@ -104,9 +124,23 @@ fun AñadirEjercicioScreen(
                         .padding(vertical = 4.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .clickable(enabled = exercise.confirmed && exercise.name.isNotBlank()) {
-                            onExerciseItemsChange(exerciseItems.map {
-                                if (it.id == exercise.id) it.copy(selected = !it.selected) else it
-                            })
+                            if (exercise.selected) {
+                                onExerciseItemsChange(
+                                    exerciseItems.map {
+                                        if (it.id == exercise.id) {
+                                            it.copy(selected = false, selectionOrder = null)
+                                        } else it
+                                    }.normalizeSelectionOrder()
+                                )
+                            } else {
+                                val nextSelectionOrder =
+                                    (exerciseItems.mapNotNull { it.selectionOrder }.maxOrNull() ?: 0) + 1
+                                onExerciseItemsChange(exerciseItems.map {
+                                    if (it.id == exercise.id) {
+                                        it.copy(selected = true, selectionOrder = nextSelectionOrder)
+                                    } else it
+                                })
+                            }
                         }
                         .background(if (exercise.selected) Color.White else SnailDarkGray)
                         .padding(12.dp),
@@ -116,7 +150,9 @@ fun AñadirEjercicioScreen(
                         onClick = {
                             confirmation.request(DeleteConfirmation) {
                             onExerciseItemsChange(
-                                exerciseItems.filterNot { it.id == exercise.id }
+                                exerciseItems
+                                    .filterNot { it.id == exercise.id }
+                                    .normalizeSelectionOrder()
                             )
                             }
                         }
@@ -138,7 +174,9 @@ fun AñadirEjercicioScreen(
                                 if (it.id == exercise.id) {
                                     it.copy(
                                         name = newName,
-                                        selected = it.selected && newName.isNotBlank()
+                                        selected = it.selected && newName.isNotBlank(),
+                                        selectionOrder = it.selectionOrder
+                                            ?.takeIf { newName.isNotBlank() }
                                     )
                                 } else {
                                     it
@@ -171,6 +209,17 @@ fun AñadirEjercicioScreen(
                         singleLine = true
                     )
                     }
+
+                    exercise.selectionOrder?.let { order ->
+                        Text(
+                            text = "${order}",
+                            modifier = Modifier.padding(start = 8.dp),
+                            color = foregroundColor,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                 }
             }
 
@@ -178,11 +227,18 @@ fun AñadirEjercicioScreen(
                 OutlinedButton(
                     onClick = {
                         val nextId = (exerciseItems.maxOfOrNull { it.id } ?: -1L) + 1L
+                        val nextSelectionOrder =
+                            (exerciseItems.mapNotNull { it.selectionOrder }.maxOrNull() ?: 0) + 1
                         onExerciseItemsChange(
                             exerciseItems.map {
                                 it.copy(
                                     confirmed = it.name.isNotBlank(),
-                                    selected = it.selected || (!it.confirmed && it.name.isNotBlank())
+                                    selected = it.selected || (!it.confirmed && it.name.isNotBlank()),
+                                    selectionOrder = if (!it.confirmed && it.name.isNotBlank()) {
+                                        it.selectionOrder ?: nextSelectionOrder
+                                    } else {
+                                        it.selectionOrder
+                                    }
                                 )
                             }.sortedByExerciseName() + ExerciseItem(id = nextId)
                         )
@@ -230,6 +286,7 @@ fun AñadirEjercicioScreen(
                         onAdd(
                             exerciseItems
                                 .filter { it.selected && it.name.isNotBlank() }
+                                .sortedBy { it.selectionOrder }
                                 .map { it.name.trim() }
                         )
                     },

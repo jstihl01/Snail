@@ -56,7 +56,13 @@ class MainActivity : ComponentActivity() {
                 fun clearExerciseSelections() {
                     val unselectedExercises = exerciseDrafts
                         .filter { it.name.isNotBlank() }
-                        .map { it.copy(selected = false, confirmed = true) }
+                        .map {
+                            it.copy(
+                                selected = false,
+                                selectionOrder = null,
+                                confirmed = true
+                            )
+                        }
                     exerciseDrafts = unselectedExercises
                     ExerciseStorage.save(context, unselectedExercises)
                 }

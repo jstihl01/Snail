@@ -22,7 +22,7 @@ Android 7.0 o superior. Descarga el APK, ábrelo y permite la instalación desde
 2. Escribe el **Nombre de la Rutina**.
 3. Pulsa **Añadir Ejercicio** para abrir el catálogo.
 4. Si necesitas un ejercicio nuevo, pulsa **Crear Ejercicio**, escribe su nombre y confírmalo con el teclado o al salir del campo. El nombre pasa a ser texto no editable y el ejercicio queda seleccionado.
-5. Toca los ejercicios que quieras seleccionar o desmarcar y pulsa **Añadir**. Puedes seleccionar varios y volver al catálogo para añadir más, incluso repetir ejercicios.
+5. Toca los ejercicios en el orden en que quieras añadirlos: un número indica su posición. Puedes desmarcarlos, seleccionar varios y volver al catálogo para añadir más, incluso repetir ejercicios.
 6. De vuelta en la rutina, completa **Series** y **Reps.** de cada ejercicio. **RIR** (repeticiones en reserva) es opcional. La papelera retira un ejercicio de esta rutina sin borrarlo del catálogo.
 7. Pulsa **Guardar** para conservar la rutina y volver al inicio. Se habilita con un nombre válido, al menos un ejercicio y Series y Reps. completas en todos ellos.
 
