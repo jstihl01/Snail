@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.snail.ui.models.SavedRoutine
 import com.example.snail.ui.models.SavedWorkout
 import com.example.snail.ui.components.bottomActionsLayout
@@ -51,13 +53,10 @@ private data class TrainingSetInput(
     val number: Int,
     val kilogramsPlaceholder: String = "",
     val kilograms: String = "",
-    val repetitions: String = "",
-    val rir: String = ""
+    val repetitions: String = ""
 ) {
     val isComplete: Boolean
-        get() = kilograms.isValidDecimal() &&
-            repetitions.isValidDecimal() &&
-            (rir.isEmpty() || rir.isValidDecimal())
+        get() = kilograms.isValidDecimal() && repetitions.isValidDecimal()
 }
 
 private data class TrainingExerciseInput(
@@ -113,7 +112,7 @@ fun NuevoEntrenamientoScreen(
     val confirmation = rememberConfirmationState()
     val requestExit: () -> Unit = {
         if (exercises.any { exercise -> exercise.sets.any {
-            it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty() || it.rir.isNotEmpty()
+            it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty()
         } }) confirmation.request(ExitConfirmation, onBack) else onBack()
     }
     BackHandler { requestExit() }
@@ -160,7 +159,7 @@ fun NuevoEntrenamientoScreen(
                         TrainingColumnTitle("Serie", Modifier.weight(0.65f))
                         TrainingColumnTitle("KG", Modifier.weight(1f))
                         TrainingColumnTitle("Reps.", Modifier.weight(1f))
-                        TrainingColumnTitle("RIR", Modifier.weight(1f))
+                        TrainingColumnTitle("RIR", Modifier.weight(0.65f))
                     }
 
                     exercise.sets.forEach { set ->
@@ -199,15 +198,11 @@ fun NuevoEntrenamientoScreen(
                                 modifier = Modifier.weight(1f)
                             )
 
-                            TrainingValueField(
-                                value = set.rir,
-                                onValueChange = { value ->
-                                    exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(rir = value)
-                                    }
-                                },
-                                placeholder = exercise.targetRir,
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = exercise.targetRir,
+                                modifier = Modifier.weight(0.65f),
+                                color = Color.White,
+                                textAlign = TextAlign.Center
                             )
 
                         }
@@ -216,32 +211,33 @@ fun NuevoEntrenamientoScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        Box(
-                            modifier = Modifier.weight(0.65f),
-                            contentAlignment = Alignment.Center
+                        IconButton(
+                            onClick = {
+                                exercises = exercises.addSet(
+                                    exerciseId = exercise.id,
+                                    kilogramsPlaceholder = exercise.sets
+                                        .firstOrNull()
+                                        ?.kilogramsPlaceholder
+                                        .orEmpty()
+                                )
+                            }
                         ) {
-                            IconButton(
-                                onClick = {
-                                    exercises = exercises.addSet(
-                                        exerciseId = exercise.id,
-                                        kilogramsPlaceholder = exercise.sets
-                                            .firstOrNull()
-                                            ?.kilogramsPlaceholder
-                                            .orEmpty()
-                                    )
-                                }
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(Color.White, CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "+",
-                                    color = Color.White
+                                    color = routineColorFor(routine.colorIndex),
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.weight(1f))
-                        Spacer(modifier = Modifier.weight(1f))
-                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -275,7 +271,7 @@ fun NuevoEntrenamientoScreen(
                                         number = set.number,
                                         kilograms = set.kilograms.trim(),
                                         repetitions = set.repetitions.trim(),
-                                        rir = set.rir.trim()
+                                        rir = exercise.targetRir
                                     )
                                 }
                             if (completedSets.isEmpty()) {
