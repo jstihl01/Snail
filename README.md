@@ -1,7 +1,7 @@
 # Snail
 
 <p align="center">
-  <img src="icon/snailtracker_icon.png" alt="Logo de Snail" width="160" />
+  <img src="icon/snailtracker_icon-rounded.png" alt="Logo de Snail" width="160" />
 </p>
 
 <p align="center">Strength Notes &amp; Activity Improvement Log</p>
@@ -10,7 +10,7 @@ App Android para crear rutinas de fuerza y registrar entrenamientos. Los ejercic
 
 <p align="center">
   <a href="https://github.com/jstihl01/Snail/releases/latest/download/Snail.apk">
-    <img src="https://img.shields.io/badge/⬇_DESCARGAR_APK-Última_versión-2d7048?style=for-the-badge" alt="Descargar APK — Última versión" />
+    <img src="assets/descargar-apk.png" alt="Descargar APK — Última versión" width="600" />
   </a>
 </p>
 
