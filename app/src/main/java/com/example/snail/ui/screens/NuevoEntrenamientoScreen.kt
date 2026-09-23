@@ -203,15 +203,8 @@ fun NuevoEntrenamientoScreen(
                             TrainingValueField(
                                 value = set.kilograms,
                                 onValueChange = { value ->
-                                    exercises = exercises.map { current ->
-                                        if (current.id != exercise.id) current else current.copy(
-                                            sets = current.sets.map { row ->
-                                                if (row.number == set.number ||
-                                                    (row.number > set.number && value.isValidDecimal())) {
-                                                    row.copy(kilograms = value)
-                                                } else row
-                                            }
-                                        )
+                                    exercises = exercises.updateSet(exercise.id, set.number) {
+                                        it.copy(kilograms = value)
                                     }
                                 },
                                 placeholder = set.kilogramsPlaceholder,
