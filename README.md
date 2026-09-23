@@ -10,7 +10,7 @@ App Android para crear rutinas de fuerza y registrar entrenamientos. Los ejercic
 
 <p align="center">
   <a href="https://github.com/jstihl01/Snail/releases/latest/download/Snail.apk">
-    <img src="assets/descargar-apk.png" alt="Descargar APK — Última versión" width="600" />
+    <img src="assets/descargar-apk.png" alt="Descargar APK — Última versión" width="300" />
   </a>
 </p>
 
