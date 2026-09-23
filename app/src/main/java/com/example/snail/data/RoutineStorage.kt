@@ -3,6 +3,7 @@ package com.example.snail.data
 import android.content.Context
 import com.example.snail.ui.models.RoutineExercise
 import com.example.snail.ui.models.SavedRoutine
+import com.example.snail.ui.models.splitRepetitionRange
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -16,7 +17,8 @@ object RoutineStorage {
             .getString(RoutinesKey, null)
             ?: return emptyList()
 
-        return runCatching {
+        var needsMigration = false
+        val loaded = runCatching {
             val routinesJson = JSONArray(serialized)
             List(routinesJson.length()) { routineIndex ->
                 val routineJson = routinesJson.getJSONObject(routineIndex)
@@ -27,17 +29,22 @@ object RoutineStorage {
                     colorIndex = routineJson.optInt("colorIndex", 0),
                     exercises = List(exercisesJson.length()) { exerciseIndex ->
                         val exerciseJson = exercisesJson.getJSONObject(exerciseIndex)
+                        val legacyRange = splitRepetitionRange(exerciseJson.optString("repetitions", ""))
+                        if (!exerciseJson.has("minRepetitions")) needsMigration = true
                         RoutineExercise(
                             id = exerciseJson.getLong("id"),
                             name = exerciseJson.getString("name"),
                             series = exerciseJson.getString("series"),
-                            repetitions = exerciseJson.getString("repetitions"),
+                            minRepetitions = exerciseJson.optString("minRepetitions", legacyRange.first),
+                            maxRepetitions = exerciseJson.optString("maxRepetitions", legacyRange.second),
                             rir = exerciseJson.getString("rir")
                         )
                     }
                 )
             }
-        }.getOrDefault(emptyList())
+        }.getOrNull() ?: return emptyList()
+        if (needsMigration) save(context, loaded)
+        return loaded
     }
 
     fun save(context: Context, routines: List<SavedRoutine>) {
@@ -51,6 +58,8 @@ object RoutineStorage {
                         .put("name", exercise.name)
                         .put("series", exercise.series)
                         .put("repetitions", exercise.repetitions)
+                        .put("minRepetitions", exercise.minRepetitions)
+                        .put("maxRepetitions", exercise.maxRepetitions)
                         .put("rir", exercise.rir)
                 )
             }

@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,6 +54,7 @@ import com.example.snail.ui.models.SavedWorkout
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.CompletedExercise
 import com.example.snail.ui.models.CompletedSet
+import com.example.snail.ui.models.kilogramsReference
 import com.example.snail.ui.theme.SnailDarkGray
 import com.example.snail.ui.theme.routineColorFor
 import com.example.snail.ui.theme.SnailLightGray
@@ -74,21 +84,8 @@ fun NuevoEntrenamientoScreen(
     onBack: () -> Unit,
     onSave: (List<CompletedExercise>) -> Unit
 ) {
-    val globalKilogramsByExercise = remember(workouts) {
-        workouts
-            .flatMap { it.exercises }
-            .groupBy { it.name }
-            .mapValues { (_, completedExercises) ->
-                completedExercises
-                    .flatMap { it.sets }
-                    .mapNotNull { it.kilograms.toDecimalOrNull() }
-                    .maxOrNull()
-                    ?.stripTrailingZeros()
-                    ?.toPlainString()
-                    ?.replace('.', ',')
-            }
-            .filterValues { it != null }
-            .mapValues { it.value.orEmpty() }
+    val globalKilogramsByExercise = remember(workouts, routine.exercises) {
+        routine.exercises.associate { it.id to it.kilogramsReference(workouts) }
     }
     var exercises by remember(routine.id, globalKilogramsByExercise) {
         mutableStateOf(
@@ -102,7 +99,7 @@ fun NuevoEntrenamientoScreen(
                     sets = List(setCount) { index ->
                         TrainingSetInput(
                             number = index + 1,
-                            kilogramsPlaceholder = globalKilogramsByExercise[exercise.name].orEmpty()
+                            kilogramsPlaceholder = globalKilogramsByExercise[exercise.id].orEmpty()
                         )
                     }
                 )
@@ -110,6 +107,31 @@ fun NuevoEntrenamientoScreen(
         )
     }
     val confirmation = rememberConfirmationState()
+    val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val fieldOrder = exercises.flatMap { exercise ->
+        exercise.sets.flatMap { set ->
+            listOf(Triple(exercise.id, set.number, false), Triple(exercise.id, set.number, true))
+        }
+    }
+    var pendingFocus by remember { mutableStateOf<Triple<Long, Int, Boolean>?>(null) }
+    LaunchedEffect(pendingFocus) {
+        val target = pendingFocus ?: return@LaunchedEffect
+        val index = exercises.indexOfFirst { it.id == target.first }
+        if (index >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == index }) {
+            listState.scrollToItem(index)
+        }
+    }
+    fun advanceFocus(current: Triple<Long, Int, Boolean>) {
+        val next = fieldOrder.getOrNull(fieldOrder.indexOf(current) + 1)
+        if (next != null) {
+            pendingFocus = next
+        } else {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        }
+    }
     val requestExit: () -> Unit = {
         if (exercises.any { exercise -> exercise.sets.any {
             it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty()
@@ -126,6 +148,7 @@ fun NuevoEntrenamientoScreen(
             .imePadding()
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -163,6 +186,8 @@ fun NuevoEntrenamientoScreen(
                     }
 
                     exercise.sets.forEach { set ->
+                        val kgKey = Triple(exercise.id, set.number, false)
+                        val repsKey = Triple(exercise.id, set.number, true)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -178,12 +203,23 @@ fun NuevoEntrenamientoScreen(
                             TrainingValueField(
                                 value = set.kilograms,
                                 onValueChange = { value ->
-                                    exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(kilograms = value)
+                                    exercises = exercises.map { current ->
+                                        if (current.id != exercise.id) current else current.copy(
+                                            sets = current.sets.map { row ->
+                                                if (row.number == set.number ||
+                                                    (row.number > set.number && value.isValidDecimal())) {
+                                                    row.copy(kilograms = value)
+                                                } else row
+                                            }
+                                        )
                                     }
                                 },
                                 placeholder = set.kilogramsPlaceholder,
                                 boldPlaceholder = true,
+                                requestFocus = pendingFocus == kgKey,
+                                onFocused = { if (pendingFocus == kgKey) pendingFocus = null },
+                                onKeyboardAction = { advanceFocus(kgKey) },
+                                isLast = false,
                                 modifier = Modifier.weight(1f)
                             )
 
@@ -195,6 +231,10 @@ fun NuevoEntrenamientoScreen(
                                     }
                                 },
                                 placeholder = exercise.targetRepetitions,
+                                requestFocus = pendingFocus == repsKey,
+                                onFocused = { if (pendingFocus == repsKey) pendingFocus = null },
+                                onKeyboardAction = { advanceFocus(repsKey) },
+                                isLast = repsKey == fieldOrder.lastOrNull(),
                                 modifier = Modifier.weight(1f)
                             )
 
@@ -269,9 +309,9 @@ fun NuevoEntrenamientoScreen(
                                 .map { set ->
                                     CompletedSet(
                                         number = set.number,
-                                        kilograms = set.kilograms.trim(),
-                                        repetitions = set.repetitions.trim(),
-                                        rir = exercise.targetRir
+                                        kilograms = set.kilograms.trim().replace('.', ','),
+                                        repetitions = set.repetitions.trim().replace('.', ','),
+                                        rir = exercise.targetRir.replace('.', ',')
                                     )
                                 }
                             if (completedSets.isEmpty()) {
@@ -319,15 +359,26 @@ private fun TrainingValueField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
+    requestFocus: Boolean,
+    onFocused: () -> Unit,
+    onKeyboardAction: () -> Unit,
+    isLast: Boolean,
     boldPlaceholder: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val requester = remember { FocusRequester() }
+    LaunchedEffect(requestFocus) {
+        if (requestFocus) requester.requestFocus()
+    }
     OutlinedTextField(
         value = value,
         onValueChange = { newValue ->
-            if (newValue.isDecimalInput()) onValueChange(newValue)
+            val normalized = newValue.replace('.', ',')
+            if (normalized.isDecimalInput()) onValueChange(normalized)
         },
-        modifier = modifier,
+        modifier = modifier.focusRequester(requester).onFocusChanged {
+            if (it.isFocused) onFocused()
+        },
         placeholder = {
             Text(
                 text = placeholder,
@@ -337,7 +388,14 @@ private fun TrainingValueField(
             )
         },
         textStyle = TextStyle(textAlign = TextAlign.Center),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = if (isLast) ImeAction.Done else ImeAction.Next
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { onKeyboardAction() },
+            onDone = { onKeyboardAction() }
+        ),
         singleLine = true
     )
 }
@@ -346,7 +404,6 @@ private fun String.isDecimalInput(): Boolean = matches(Regex("\\d*(,\\d*)?"))
 
 private fun String.isValidDecimal(): Boolean = matches(Regex("\\d+(,\\d+)?"))
 
-private fun String.toDecimalOrNull() = replace(',', '.').toBigDecimalOrNull()
 
 private fun List<TrainingExerciseInput>.updateSet(
     exerciseId: Long,
@@ -373,6 +430,8 @@ private fun List<TrainingExerciseInput>.addSet(
         exercise.copy(
             sets = exercise.sets + TrainingSetInput(
                 number = nextSetNumber,
+                kilograms = exercise.sets.lastOrNull()?.kilograms.orEmpty()
+                    .takeIf { it.isValidDecimal() }.orEmpty(),
                 kilogramsPlaceholder = kilogramsPlaceholder
             )
         )

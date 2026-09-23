@@ -23,8 +23,8 @@ Android 7.0 o superior. Descarga el APK, ábrelo y permite la instalación desde
 3. Pulsa **Añadir Ejercicio** para abrir el catálogo.
 4. Si necesitas un ejercicio nuevo, pulsa **Crear Ejercicio**, escribe su nombre y confírmalo con el teclado o al salir del campo. El nombre pasa a ser texto no editable y el ejercicio queda seleccionado.
 5. Toca los ejercicios en el orden en que quieras añadirlos: un número indica su posición. Puedes desmarcarlos, seleccionar varios y volver al catálogo para añadir más, incluso repetir ejercicios.
-6. De vuelta en la rutina, completa **Series** y **Reps.** de cada ejercicio. **RIR** (repeticiones en reserva) es opcional. La papelera retira un ejercicio de esta rutina sin borrarlo del catálogo.
-7. Pulsa **Guardar** para conservar la rutina y volver al inicio. Se habilita con un nombre válido, al menos un ejercicio y Series y Reps. completas en todos ellos.
+6. De vuelta en la rutina, completa **Series**, **Mín. Reps.** y, opcionalmente, **Máx. Reps.** y **RIR**. Las rutinas anteriores conservan sus rangos de repeticiones. La papelera retira un ejercicio de esta rutina sin borrarlo del catálogo.
+7. Pulsa **Guardar** para conservar la rutina y volver al inicio. Se habilita con un nombre válido, al menos un ejercicio y Series y Mín. Reps. completas en todos ellos.
 
 El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. **Añadir** queda deshabilitado mientras haya uno en creación; **Crear Ejercicio**, mientras haya uno sin nombre válido. Cancelar o añadir descarta los nombres vacíos o sólo con espacios y limpia la selección.
 
@@ -39,8 +39,8 @@ El catálogo se ordena alfabéticamente al abrirlo y al confirmar un ejercicio. 
 ## Registrar las series
 
 1. Cada ejercicio muestra una fila por serie con **Serie**, **KG**, **Reps.** y **RIR**. El botón **+**, a la derecha, añade series adicionales.
-2. Introduce los KG y las Reps. realizados como números enteros o decimales con coma. RIR muestra el valor previsto en la rutina y no se edita.
-3. El placeholder de KG muestra en negrita el máximo histórico global del ejercicio, si existe. El de Reps. muestra el objetivo definido en la rutina.
+2. Introduce los KG y las Reps. realizados como números enteros o decimales con coma o punto; se guardan con coma. RIR muestra el valor previsto en la rutina y no se edita.
+3. El placeholder de KG muestra en negrita el mayor peso histórico del ejercicio que alcance Mín. Reps. El de Reps. muestra el objetivo definido en la rutina.
 4. Pulsa **Guardar** para volver al inicio. Se habilita cuando al menos una serie tiene KG y Reps. válidos; sólo se guardan las series completas.
 
 ## Consultar el historial
@@ -59,4 +59,4 @@ El historial se abre desde el fondo, con los entrenamientos más recientes abajo
 
 Los ejercicios del catálogo se reutilizan entre rutinas. Ejercicios, rutinas, colores y entrenamientos se almacenan localmente y permanecen tras reiniciar la app.
 
-La interfaz utiliza orientación vertical, fondo negro, texto claro y listas desplazables. Series, Reps., RIR y KG abren un teclado numérico.
+La interfaz utiliza orientación vertical, fondo negro, texto claro y listas desplazables. Los campos numéricos abren un teclado numérico; su botón de avance recorre los campos y desplaza la lista cuando es necesario.

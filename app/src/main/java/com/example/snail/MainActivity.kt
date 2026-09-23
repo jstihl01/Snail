@@ -119,9 +119,10 @@ class MainActivity : ComponentActivity() {
                                 name = routineName.trim(),
                                 exercises = routineExercises.map { exercise ->
                                     exercise.copy(
-                                        series = exercise.series.trim(),
-                                        repetitions = exercise.repetitions.trim(),
-                                        rir = exercise.rir.trim()
+                                        series = exercise.series.trim().replace('.', ','),
+                                        minRepetitions = exercise.minRepetitions.trim().replace('.', ','),
+                                        maxRepetitions = exercise.maxRepetitions.trim().replace('.', ','),
+                                        rir = exercise.rir.trim().replace('.', ',')
                                     )
                                 }
                             )
