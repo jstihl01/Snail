@@ -196,13 +196,15 @@ class MainActivity : ComponentActivity() {
                                 activeTrainingRoutine = null
                                 currentScreen = AppScreen.TRAINING
                             },
-                            onSave = { completedExercises ->
+                            onSave = { completedExercises, startMotivation, endMotivation ->
                                 val updatedWorkouts = savedWorkouts + SavedWorkout(
                                     id = nextWorkoutId++,
                                     routineName = routine.name,
                                     completedAt = System.currentTimeMillis(),
                                     colorIndex = routine.colorIndex,
                                     routineId = routine.id,
+                                    startMotivation = startMotivation,
+                                    endMotivation = endMotivation,
                                     exercises = completedExercises
                                 )
                                 savedWorkouts = updatedWorkouts

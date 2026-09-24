@@ -49,5 +49,18 @@ data class SavedWorkout(
     val completedAt: Long,
     val exercises: List<CompletedExercise>,
     val colorIndex: Int = 0,
-    val routineId: Long? = null
+    val routineId: Long? = null,
+    val startMotivation: String = DefaultStartMotivation,
+    val endMotivation: String = DefaultEndMotivation
 )
+
+const val DefaultStartMotivation = "😞"
+const val DefaultEndMotivation = "😄"
+val WorkoutMotivations = setOf("🤕", "😞", "🙂", "😄", "🔥")
+
+fun normalizedRoutineColorIndex(index: Int): Int = when (index) {
+    in 0..7 -> index
+    8, 9 -> 7
+    10 -> 1
+    else -> 0
+}

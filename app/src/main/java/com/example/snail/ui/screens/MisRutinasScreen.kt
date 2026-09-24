@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,7 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -147,9 +146,11 @@ fun MisRutinasScreen(
                             DropdownMenu(
                                 expanded = openColorMenuRoutineId == routine.id,
                                 onDismissRequest = { openColorMenuRoutineId = null },
-                                modifier = Modifier.requiredWidth(64.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                containerColor = Color.Black
+                                modifier = Modifier
+                                    .width(64.dp)
+                                    .border(1.dp, Color.White, RoundedCornerShape(32.dp)),
+                                shape = RoundedCornerShape(32.dp),
+                                containerColor = routineColor
                             ) {
                                 RoutineColors.forEachIndexed { optionIndex, color ->
                                     DropdownMenuItem(
@@ -175,7 +176,7 @@ fun MisRutinasScreen(
                                             openColorMenuRoutineId = null
                                             onRoutineColorChange(routine.id, optionIndex)
                                         },
-                                        contentPadding = PaddingValues(0.dp)
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                                     )
                                 }
                             }

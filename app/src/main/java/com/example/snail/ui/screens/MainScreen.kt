@@ -84,6 +84,7 @@ fun MainScreen(
                 items = workouts,
                 key = { _, workout -> workout.id }
             ) { index, workout ->
+                val historyContentColor = Color.White.copy(alpha = 0.68f)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -102,7 +103,7 @@ fun MainScreen(
                     Text(
                         text = workout.completedAt.toDisplayDateTime(),
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color.White
+                        color = historyContentColor
                     )
 
                     Column(
@@ -120,12 +121,19 @@ fun MainScreen(
                         IconButton(onClick = {
                             confirmation.request(DeleteConfirmation) { onDeleteWorkout(workout.id) }
                         }) {
-                            TrashIcon(contentDescription = "Eliminar entrenamiento")
+                            TrashIcon(
+                                tint = historyContentColor,
+                                contentDescription = "Eliminar entrenamiento"
+                            )
                         }
                         Text(
                             text = workout.routineName,
                             modifier = Modifier.weight(1f),
-                            color = Color.White
+                            color = historyContentColor
+                        )
+                        Text(
+                            text = "${workout.startMotivation} ➜ ${workout.endMotivation}",
+                            color = historyContentColor
                         )
                     }
 
@@ -134,14 +142,15 @@ fun MainScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .border(
-                                    border = BorderStroke(1.dp, Color.White),
+                                    border = BorderStroke(1.dp, historyContentColor),
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clip(RoundedCornerShape(8.dp))
                         ) {
                             WorkoutCell(
                                 text = exercise.name,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                color = historyContentColor
                             )
                             exercise.sets.forEach { set ->
                                 Row(
@@ -149,10 +158,15 @@ fun MainScreen(
                                         .fillMaxWidth()
                                         .height(IntrinsicSize.Min)
                                 ) {
-                                    WorkoutCell(set.number.toString(), Modifier.weight(1f))
+                                    WorkoutCell(
+                                        set.number.toString(),
+                                        Modifier.weight(1f),
+                                        historyContentColor
+                                    )
                                     WorkoutCell(
                                         text = "${set.kilograms} KG × ${set.repetitions} Reps.",
-                                        modifier = Modifier.weight(2f)
+                                        modifier = Modifier.weight(2f),
+                                        color = historyContentColor
                                     )
                                 }
                             }
@@ -219,19 +233,20 @@ private fun Long.toDisplayDateTime(): String {
 @Composable
 private fun WorkoutCell(
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    color: Color = Color.White
 ) {
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .border(0.5.dp, Color.White)
+            .border(0.5.dp, color)
             .padding(horizontal = 6.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
             modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
+            color = color,
             textAlign = TextAlign.Center
         )
     }

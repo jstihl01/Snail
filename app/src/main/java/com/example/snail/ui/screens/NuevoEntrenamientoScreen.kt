@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,7 +84,7 @@ fun NuevoEntrenamientoScreen(
     routine: SavedRoutine,
     workouts: List<SavedWorkout>,
     onBack: () -> Unit,
-    onSave: (List<CompletedExercise>) -> Unit
+    onSave: (List<CompletedExercise>, String, String) -> Unit
 ) {
     val globalKilogramsByExercise = remember(workouts, routine.exercises) {
         routine.exercises.associate { it.id to it.kilogramsReference(workouts) }
@@ -115,6 +117,8 @@ fun NuevoEntrenamientoScreen(
             listOf(Triple(exercise.id, set.number, false), Triple(exercise.id, set.number, true))
         }
     }
+    var startMotivation by remember { mutableStateOf<String?>(null) }
+    var endMotivation by remember { mutableStateOf<String?>(null) }
     var pendingFocus by remember { mutableStateOf<Triple<Long, Int, Boolean>?>(null) }
     LaunchedEffect(pendingFocus) {
         val target = pendingFocus ?: return@LaunchedEffect
@@ -138,7 +142,8 @@ fun NuevoEntrenamientoScreen(
         } }) confirmation.request(ExitConfirmation, onBack) else onBack()
     }
     BackHandler { requestExit() }
-    val canSave = exercises.any { exercise -> exercise.sets.any { it.isComplete } }
+    val canSave = startMotivation != null && endMotivation != null &&
+        exercises.any { exercise -> exercise.sets.any { it.isComplete } }
 
     ConfirmationHost(confirmation) {
     Column(
@@ -156,6 +161,14 @@ fun NuevoEntrenamientoScreen(
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item(key = "start-motivation") {
+                MotivationSelector(
+                    title = "Motivación inicial",
+                    selected = startMotivation,
+                    backgroundColor = routineColorFor(routine.colorIndex),
+                    onSelected = { startMotivation = it }
+                )
+            }
             items(
                 items = exercises,
                 key = { it.id }
@@ -274,6 +287,14 @@ fun NuevoEntrenamientoScreen(
                     }
                 }
             }
+            item(key = "end-motivation") {
+                MotivationSelector(
+                    title = "Motivación final",
+                    selected = endMotivation,
+                    backgroundColor = routineColorFor(routine.colorIndex),
+                    onSelected = { endMotivation = it }
+                )
+            }
         }
 
         Row(
@@ -315,7 +336,9 @@ fun NuevoEntrenamientoScreen(
                                     sets = completedSets
                                 )
                             }
-                        }
+                        },
+                        startMotivation.orEmpty(),
+                        endMotivation.orEmpty()
                     )
                 },
                 enabled = canSave,
@@ -335,6 +358,54 @@ fun NuevoEntrenamientoScreen(
     }
 }
 
+}
+
+private val MotivationOptions = listOf("🤕", "😞", "🙂", "😄", "🔥")
+
+@Composable
+private fun MotivationSelector(
+    title: String,
+    selected: String?,
+    backgroundColor: Color,
+    onSelected: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(text = title, color = Color.White)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+        ) {
+            MotivationOptions.forEachIndexed { index, motivation ->
+                val isSelected = selected == motivation
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(if (isSelected) Color.White else backgroundColor)
+                        .clickable { onSelected(motivation) }
+                        .border(
+                            width = if (index == MotivationOptions.lastIndex) 0.dp else 0.5.dp,
+                            color = Color.White
+                        )
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = motivation,
+                        fontSize = 24.sp
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

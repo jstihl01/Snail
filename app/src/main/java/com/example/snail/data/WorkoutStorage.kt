@@ -4,6 +4,10 @@ import android.content.Context
 import com.example.snail.ui.models.CompletedExercise
 import com.example.snail.ui.models.CompletedSet
 import com.example.snail.ui.models.SavedWorkout
+import com.example.snail.ui.models.normalizedRoutineColorIndex
+import com.example.snail.ui.models.DefaultEndMotivation
+import com.example.snail.ui.models.DefaultStartMotivation
+import com.example.snail.ui.models.WorkoutMotivations
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -17,20 +21,35 @@ object WorkoutStorage {
             .getString(WorkoutsKey, null)
             ?: return emptyList()
 
-        return runCatching {
+        var needsMigration = false
+        val loaded = runCatching {
             val workoutsJson = JSONArray(serialized)
             List(workoutsJson.length()) { workoutIndex ->
                 val workoutJson = workoutsJson.getJSONObject(workoutIndex)
                 val exercisesJson = workoutJson.getJSONArray("exercises")
+                val storedColorIndex = workoutJson.optInt("colorIndex", 0)
+                val colorIndex = normalizedRoutineColorIndex(storedColorIndex)
+                if (storedColorIndex != colorIndex) needsMigration = true
+                val storedStartMotivation = workoutJson.optString("startMotivation")
+                val storedEndMotivation = workoutJson.optString("endMotivation")
+                val startMotivation = storedStartMotivation
+                    .takeIf { it in WorkoutMotivations } ?: DefaultStartMotivation
+                val endMotivation = storedEndMotivation
+                    .takeIf { it in WorkoutMotivations } ?: DefaultEndMotivation
+                if (storedStartMotivation != startMotivation || storedEndMotivation != endMotivation) {
+                    needsMigration = true
+                }
                 SavedWorkout(
                     id = workoutJson.getLong("id"),
                     routineName = workoutJson.getString("routineName"),
                     completedAt = workoutJson.optLong("completedAt", 0L),
-                    colorIndex = workoutJson.optInt("colorIndex", 0),
+                    colorIndex = colorIndex,
                     routineId = if (workoutJson.has("routineId") &&
                         !workoutJson.isNull("routineId")) {
                         workoutJson.getLong("routineId")
                     } else null,
+                    startMotivation = startMotivation,
+                    endMotivation = endMotivation,
                     exercises = List(exercisesJson.length()) { exerciseIndex ->
                         val exerciseJson = exercisesJson.getJSONObject(exerciseIndex)
                         val setsJson = exerciseJson.getJSONArray("sets")
@@ -50,6 +69,8 @@ object WorkoutStorage {
                 )
             }
         }.getOrDefault(emptyList())
+        if (needsMigration) save(context, loaded)
+        return loaded
     }
 
     fun save(context: Context, workouts: List<SavedWorkout>) {
@@ -80,6 +101,8 @@ object WorkoutStorage {
                     .put("completedAt", workout.completedAt)
                     .put("colorIndex", workout.colorIndex)
                     .put("routineId", workout.routineId ?: JSONObject.NULL)
+                    .put("startMotivation", workout.startMotivation ?: JSONObject.NULL)
+                    .put("endMotivation", workout.endMotivation ?: JSONObject.NULL)
                     .put("exercises", exercisesJson)
             )
         }

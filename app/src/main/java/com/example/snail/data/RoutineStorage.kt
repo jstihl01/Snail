@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.snail.ui.models.RoutineExercise
 import com.example.snail.ui.models.SavedRoutine
 import com.example.snail.ui.models.splitRepetitionRange
+import com.example.snail.ui.models.normalizedRoutineColorIndex
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -23,10 +24,13 @@ object RoutineStorage {
             List(routinesJson.length()) { routineIndex ->
                 val routineJson = routinesJson.getJSONObject(routineIndex)
                 val exercisesJson = routineJson.getJSONArray("exercises")
+                val storedColorIndex = routineJson.optInt("colorIndex", 0)
+                val colorIndex = normalizedRoutineColorIndex(storedColorIndex)
+                if (storedColorIndex != colorIndex) needsMigration = true
                 SavedRoutine(
                     id = routineJson.getLong("id"),
                     name = routineJson.getString("name"),
-                    colorIndex = routineJson.optInt("colorIndex", 0),
+                    colorIndex = colorIndex,
                     exercises = List(exercisesJson.length()) { exerciseIndex ->
                         val exerciseJson = exercisesJson.getJSONObject(exerciseIndex)
                         val legacyRange = splitRepetitionRange(exerciseJson.optString("repetitions", ""))
