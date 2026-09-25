@@ -1,18 +1,14 @@
 # Snail
 
 <p align="center">
-  <img src="icon/snailtracker_icon-rounded.png" alt="Logo de Snail" width="160" />
+  <a href="https://github.com/jstihl01/Snail/releases/latest/download/Snail.apk">
+    <img src="assets/snail_icon-download.png" alt="Descargar APK de Snail" width="160" />
+  </a>
 </p>
 
 <p align="center">Strength Notes &amp; Activity Improvement Log</p>
 
 App Android para crear rutinas de fuerza y registrar entrenamientos. Los ejercicios, rutinas y entrenamientos se guardan en el dispositivo y permanecen tras reiniciar la app.
-
-<p align="center">
-  <a href="https://github.com/jstihl01/Snail/releases/latest/download/Snail.apk">
-    <img src="assets/descargar-apk.png" alt="Descargar APK — Última versión" width="300" />
-  </a>
-</p>
 
 Android 7.0 o superior. Descarga el APK, ábrelo y permite la instalación desde esa fuente si Android lo solicita.
 

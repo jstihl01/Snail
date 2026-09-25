@@ -494,8 +494,6 @@ private fun List<TrainingExerciseInput>.addSet(
         exercise.copy(
             sets = exercise.sets + TrainingSetInput(
                 number = nextSetNumber,
-                kilograms = exercise.sets.lastOrNull()?.kilograms.orEmpty()
-                    .takeIf { it.isValidDecimal() }.orEmpty(),
                 kilogramsPlaceholder = kilogramsPlaceholder
             )
         )
