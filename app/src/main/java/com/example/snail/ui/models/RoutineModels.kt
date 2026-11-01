@@ -6,7 +6,13 @@ data class RoutineExercise(
     val series: String = "",
     val minRepetitions: String = "",
     val maxRepetitions: String = "",
-    val rir: String = ""
+    val rir: String = "",
+    val note: String = "",
+    val muscleGroup: String = "",
+    val isCardio: Boolean = false,
+    val intensity: String = "",
+    val minutes: String = "",
+    val sourceExerciseId: Long? = null
 ) {
     val repetitions: String
         get() = if (maxRepetitions.isBlank()) minRepetitions else "$minRepetitions-$maxRepetitions"
@@ -28,19 +34,29 @@ data class SavedRoutine(
     val id: Long,
     val name: String,
     val exercises: List<RoutineExercise>,
-    val colorIndex: Int = 0
+    val colorIndex: Int = 0,
+    val folderId: Long? = null
 )
 
 data class CompletedSet(
     val number: Int,
     val kilograms: String,
     val repetitions: String,
-    val rir: String
+    val rir: String,
+    val intensity: String = "",
+    val minutes: String = "",
+    val isExtra: Boolean = false
 )
 
 data class CompletedExercise(
     val name: String,
-    val sets: List<CompletedSet>
+    val sets: List<CompletedSet>,
+    val note: String = "",
+    val muscleGroup: String = "",
+    val isCardio: Boolean = false,
+    val targetRepetitions: String = "",
+    val targetRir: String = "",
+    val sourceExerciseId: Long? = null
 )
 
 data class SavedWorkout(
@@ -57,6 +73,17 @@ data class SavedWorkout(
 const val DefaultStartMotivation = "😞"
 const val DefaultEndMotivation = "😄"
 val WorkoutMotivations = setOf("🤕", "😞", "🙂", "😄", "🔥")
+
+data class RoutineFolder(val id: Long, val name: String)
+
+/** Keep selection order when strength and cardio need different table headings. */
+fun List<RoutineExercise>.sectionsByExerciseType(): List<List<RoutineExercise>> = buildList<MutableList<RoutineExercise>> {
+    for (exercise in this@sectionsByExerciseType) {
+        val section = lastOrNull()
+        if (section != null && section.first().isCardio == exercise.isCardio) section.add(exercise)
+        else add(mutableListOf(exercise))
+    }
+}
 
 fun normalizedRoutineColorIndex(index: Int): Int = when (index) {
     in 0..7 -> index

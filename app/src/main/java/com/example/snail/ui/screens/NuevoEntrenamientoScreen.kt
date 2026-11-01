@@ -1,503 +1,157 @@
 package com.example.snail.ui.screens
-import com.example.snail.ui.components.*
-import androidx.activity.compose.BackHandler
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.snail.ui.models.SavedRoutine
-import com.example.snail.ui.models.SavedWorkout
-import com.example.snail.ui.components.bottomActionsLayout
-import com.example.snail.ui.models.CompletedExercise
-import com.example.snail.ui.models.CompletedSet
-import com.example.snail.ui.models.kilogramsReference
-import com.example.snail.ui.theme.SnailDarkGray
+import com.example.snail.ui.components.*
+import com.example.snail.ui.models.*
 import com.example.snail.ui.theme.routineColorFor
-import com.example.snail.ui.theme.SnailLightGray
-
-private data class TrainingSetInput(
-    val number: Int,
-    val kilogramsPlaceholder: String = "",
-    val kilograms: String = "",
-    val repetitions: String = ""
-) {
-    val isComplete: Boolean
-        get() = kilograms.isValidDecimal() && repetitions.isValidDecimal()
-}
-
-private data class TrainingExerciseInput(
-    val id: Long,
-    val name: String,
-    val targetRepetitions: String,
-    val targetRir: String,
-    val sets: List<TrainingSetInput>
-)
 
 @Composable
-fun NuevoEntrenamientoScreen(
-    routine: SavedRoutine,
-    workouts: List<SavedWorkout>,
-    onBack: () -> Unit,
-    onSave: (List<CompletedExercise>, String, String) -> Unit
-) {
-    val globalKilogramsByExercise = remember(workouts, routine.exercises) {
-        routine.exercises.associate { it.id to it.kilogramsReference(workouts) }
+fun NuevoEntrenamientoScreen(routine: SavedRoutine, workouts: List<SavedWorkout>, onBack: () -> Unit,
+    onSave: (List<CompletedExercise>, String, String) -> Unit, editing: SavedWorkout? = null) {
+    val history = remember(workouts, editing?.id) { workouts.filterNot { it.id == editing?.id } }
+    val specs = remember(routine, editing) {
+        editing?.exercises ?: routine.exercises.map { exercise ->
+            CompletedExercise(exercise.name, List(exercise.series.toIntOrNull()?.coerceIn(1, 500) ?: 1) {
+                CompletedSet(it + 1, "", "", exercise.rir)
+            }, exercise.note, exercise.muscleGroup, exercise.isCardio, exercise.repetitions, exercise.rir, exercise.sourceExerciseId)
+        }
     }
-    var exercises by remember(routine.id, globalKilogramsByExercise) {
-        mutableStateOf(
-            routine.exercises.map { exercise ->
-                val setCount = exercise.series.toIntOrNull()?.coerceAtLeast(0) ?: 0
-                TrainingExerciseInput(
-                    id = exercise.id,
-                    name = exercise.name,
-                    targetRepetitions = exercise.repetitions,
-                    targetRir = exercise.rir,
-                    sets = List(setCount) { index ->
-                        TrainingSetInput(
-                            number = index + 1,
-                            kilogramsPlaceholder = globalKilogramsByExercise[exercise.id].orEmpty()
-                        )
-                    }
-                )
-            }
-        )
-    }
+    var sets by remember(specs) { mutableStateOf(specs.map { it.sets }) }
+    var startMotivation by remember { mutableStateOf(editing?.startMotivation) }
+    var endMotivation by remember { mutableStateOf(editing?.endMotivation) }
     val confirmation = rememberConfirmationState()
-    val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    val fieldOrder = exercises.flatMap { exercise ->
-        exercise.sets.flatMap { set ->
-            listOf(Triple(exercise.id, set.number, false), Triple(exercise.id, set.number, true))
-        }
-    }
-    var startMotivation by remember { mutableStateOf<String?>(null) }
-    var endMotivation by remember { mutableStateOf<String?>(null) }
-    var pendingFocus by remember { mutableStateOf<Triple<Long, Int, Boolean>?>(null) }
-    LaunchedEffect(pendingFocus) {
-        val target = pendingFocus ?: return@LaunchedEffect
-        val index = exercises.indexOfFirst { it.id == target.first }
-        if (index >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == index }) {
-            listState.scrollToItem(index)
-        }
-    }
-    fun advanceFocus(current: Triple<Long, Int, Boolean>) {
-        val next = fieldOrder.getOrNull(fieldOrder.indexOf(current) + 1)
-        if (next != null) {
-            pendingFocus = next
-        } else {
-            focusManager.clearFocus()
-            keyboard?.hide()
-        }
-    }
+    val list = rememberLazyListState()
+    var pending by remember { mutableStateOf<TrainingField?>(null) }
+    val fields = trainingFields(sets)
+    val background = routineColorFor(routine.colorIndex)
     val requestExit: () -> Unit = {
-        if (exercises.any { exercise -> exercise.sets.any {
-            it.kilograms.isNotEmpty() || it.repetitions.isNotEmpty()
-        } }) confirmation.request(ExitConfirmation, onBack) else onBack()
+        if (sets != specs.map { it.sets } || startMotivation != editing?.startMotivation || endMotivation != editing?.endMotivation)
+            confirmation.request(ExitConfirmation, onBack) else onBack()
     }
     BackHandler { requestExit() }
-    val canSave = startMotivation != null && endMotivation != null &&
-        exercises.any { exercise -> exercise.sets.any { it.isComplete } }
-
+    LaunchedEffect(pending) {
+        pending?.let { target ->
+            // Motivation + (header, rows, footer) for every preceding exercise.
+            val index = 2 + (0 until target.exercise).sumOf { sets[it].size + 2 } + target.set
+            if (list.layoutInfo.visibleItemsInfo.none { it.index == index }) list.scrollToItem(index)
+        }
+    }
+    fun next(field: TrainingField) {
+        val target = fields.getOrNull(fields.indexOf(field) + 1)
+        if (target == null) { focusManager.clearFocus(); keyboard?.hide() } else pending = target
+    }
+    fun change(exercise: Int, row: Int, value: CompletedSet) {
+        sets = sets.mapIndexed { e, rows -> if (e == exercise) rows.mapIndexed { s, old -> if (s == row) value else old } else rows }
+    }
+    val canSave = startMotivation != null && endMotivation != null && sets.indices.any { e -> sets[e].any { it.isComplete(specs[e].isCardio) } }
     ConfirmationHost(confirmation) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .imePadding()
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item(key = "start-motivation") {
-                MotivationSelector(
-                    title = "Motivación inicial",
-                    selected = startMotivation,
-                    backgroundColor = routineColorFor(routine.colorIndex),
-                    onSelected = { startMotivation = it }
-                )
-            }
-            items(
-                items = exercises,
-                key = { it.id }
-            ) { exercise ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(routineColorFor(routine.colorIndex))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = exercise.name,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color.White
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TrainingColumnTitle("Serie", Modifier.weight(0.65f))
-                        TrainingColumnTitle("KG", Modifier.weight(1f))
-                        TrainingColumnTitle("Reps.", Modifier.weight(1f))
-                        TrainingColumnTitle("RIR", Modifier.weight(0.65f))
-                    }
-
-                    exercise.sets.forEach { set ->
-                        val kgKey = Triple(exercise.id, set.number, false)
-                        val repsKey = Triple(exercise.id, set.number, true)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = set.number.toString(),
-                                modifier = Modifier.weight(0.65f),
-                                color = Color.White,
-                                textAlign = TextAlign.Center
-                            )
-
-                            TrainingValueField(
-                                value = set.kilograms,
-                                onValueChange = { value ->
-                                    exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(kilograms = value)
-                                    }
-                                },
-                                placeholder = set.kilogramsPlaceholder,
-                                boldPlaceholder = true,
-                                requestFocus = pendingFocus == kgKey,
-                                onFocused = { if (pendingFocus == kgKey) pendingFocus = null },
-                                onKeyboardAction = { advanceFocus(kgKey) },
-                                isLast = false,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            TrainingValueField(
-                                value = set.repetitions,
-                                onValueChange = { value ->
-                                    exercises = exercises.updateSet(exercise.id, set.number) {
-                                        it.copy(repetitions = value)
-                                    }
-                                },
-                                placeholder = exercise.targetRepetitions,
-                                requestFocus = pendingFocus == repsKey,
-                                onFocused = { if (pendingFocus == repsKey) pendingFocus = null },
-                                onKeyboardAction = { advanceFocus(repsKey) },
-                                isLast = repsKey == fieldOrder.lastOrNull(),
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Text(
-                                text = exercise.targetRir,
-                                modifier = Modifier.weight(0.65f),
-                                color = Color.White,
-                                textAlign = TextAlign.Center
-                            )
-
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        IconButton(
-                            onClick = {
-                                exercises = exercises.addSet(
-                                    exerciseId = exercise.id,
-                                    kilogramsPlaceholder = exercise.sets
-                                        .firstOrNull()
-                                        ?.kilogramsPlaceholder
-                                        .orEmpty()
-                                )
-                            }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(Color.White, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+",
-                                    color = routineColorFor(routine.colorIndex),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+        Column(Modifier.fillMaxSize().background(Color.Black).imePadding()) {
+            LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(top = 16.dp)) {
+                item(key = "motivation-start") { MotivationSelector("Motivación inicial", startMotivation, background) { startMotivation = it } }
+                specs.forEachIndexed { e, exercise ->
+                    item(key = "header-$e") {
+                        Column(Modifier.padding(top = 12.dp).background(background, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)).padding(12.dp)) {
+                            Text(exercise.name)
+                            if (exercise.note.isNotBlank()) Text(exercise.note, style = MaterialTheme.typography.bodySmall)
+                            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Serie", Modifier.weight(0.65f), textAlign = TextAlign.Center)
+                                Text(if (exercise.isCardio) "Intensidad" else "KG", Modifier.weight(1f), textAlign = TextAlign.Center)
+                                Text(if (exercise.isCardio) "Minutos" else "Reps.", Modifier.weight(1f), textAlign = TextAlign.Center)
+                                if (!exercise.isCardio && (exercise.targetRir.isNotBlank() || sets[e].any { it.rir.isNotBlank() }))
+                                    Text("RIR", Modifier.weight(0.65f), textAlign = TextAlign.Center)
                             }
                         }
                     }
-                }
-            }
-            item(key = "end-motivation") {
-                MotivationSelector(
-                    title = "Motivación final",
-                    selected = endMotivation,
-                    backgroundColor = routineColorFor(routine.colorIndex),
-                    onSelected = { endMotivation = it }
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.bottomActionsLayout()
-        ) {
-            OutlinedButton(
-                onClick = requestExit,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 4.dp),
-                border = BorderStroke(1.dp, Color.White),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
-                    contentColor = Color.White
-                )
-            ) {
-                Text("Cancelar")
-            }
-
-            Button(
-                onClick = {
-                    onSave(
-                        exercises.mapNotNull { exercise ->
-                            val completedSets = exercise.sets
-                                .filter { it.isComplete }
-                                .map { set ->
-                                    CompletedSet(
-                                        number = set.number,
-                                        kilograms = set.kilograms.trim().replace('.', ','),
-                                        repetitions = set.repetitions.trim().replace('.', ','),
-                                        rir = exercise.targetRir.replace('.', ',')
-                                    )
+                    sets[e].forEachIndexed { s, set ->
+                        item(key = "set-$e-${set.number}") {
+                            Row(Modifier.fillMaxWidth().background(background).padding(horizontal = 12.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("${set.number}${if (set.isExtra) " +" else ""}", Modifier.weight(0.65f)
+                                    .semanticsLabel(if (set.isExtra) "Serie ${set.number}, extra" else "Serie ${set.number}"), textAlign = TextAlign.Center)
+                                val kgReference = remember(exercise, history) {
+                                    RoutineExercise(e.toLong(), exercise.name, minRepetitions = splitRepetitionRange(exercise.targetRepetitions).first)
+                                        .kilogramsReference(history)
                                 }
-                            if (completedSets.isEmpty()) {
-                                null
-                            } else {
-                                CompletedExercise(
-                                    name = exercise.name,
-                                    sets = completedSets
-                                )
+                                for (column in 0..1) {
+                                    val field = TrainingField(e, s, column)
+                                    val value = if (exercise.isCardio) { if (column == 0) set.intensity else set.minutes }
+                                        else { if (column == 0) set.kilograms else set.repetitions }
+                                    val hint = if (exercise.isCardio) {
+                                        routine.exercises.getOrNull(e)?.let { if (column == 0) it.intensity else it.minutes }.orEmpty()
+                                    } else if (column == 0) kgReference else exercise.targetRepetitions
+                                    NumberField(value, { input -> change(e, s, if (exercise.isCardio) {
+                                        if (column == 0) set.copy(intensity = input) else set.copy(minutes = input)
+                                    } else { if (column == 0) set.copy(kilograms = input) else set.copy(repetitions = input) }) }, hint,
+                                        Modifier.weight(1f), focus = pending == field, onFocused = { if (pending == field) pending = null },
+                                        onNext = { next(field) }, last = field == fields.lastOrNull(), boldHint = !exercise.isCardio && column == 0,
+                                        label = "${exercise.name}, serie ${set.number}, ${if (exercise.isCardio) { if (column == 0) "Intensidad" else "Minutos" } else { if (column == 0) "KG" else "Reps." }}")
+                                }
+                                if (!exercise.isCardio && (exercise.targetRir.isNotBlank() || sets[e].any { it.rir.isNotBlank() }))
+                                    Text(set.rir, Modifier.weight(0.65f), textAlign = TextAlign.Center)
                             }
-                        },
-                        startMotivation.orEmpty(),
-                        endMotivation.orEmpty()
-                    )
-                },
-                enabled = canSave,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                    disabledContainerColor = SnailDarkGray,
-                    disabledContentColor = SnailLightGray
-                )
-            ) {
-                Text("Guardar")
+                        }
+                    }
+                    item(key = "footer-$e") {
+                        Row(Modifier.fillMaxWidth().background(background, RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)).padding(8.dp),
+                            horizontalArrangement = Arrangement.End) {
+                            IconButton(onClick = { sets = sets.mapIndexed { index, rows -> if (index == e) rows + newExtraSet(rows, exercise.targetRir) else rows } },
+                                modifier = Modifier.semanticsLabel("Añadir serie a ${exercise.name}")) {
+                                Box(Modifier.size(32.dp).background(Color.White, CircleShape), contentAlignment = Alignment.Center) {
+                                    Text("+", color = background, fontSize = 24.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+                item(key = "motivation-end") {
+                    Box(Modifier.padding(top = 12.dp)) { MotivationSelector("Motivación final", endMotivation, background) { endMotivation = it } }
+                }
+            }
+            Row(Modifier.bottomActionsLayout(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = requestExit, modifier = Modifier.weight(1f), border = BorderStroke(1.dp, Color.White), colors = outlinedActionColors()) { ActionText("Cancelar") }
+                Button(onClick = {
+                    onSave(specs.mapIndexedNotNull { e, exercise ->
+                        val complete = sets[e].filter { it.isComplete(exercise.isCardio) }
+                        if (complete.isEmpty()) null else exercise.copy(sets = complete)
+                    }, requireNotNull(startMotivation), requireNotNull(endMotivation))
+                }, enabled = canSave, modifier = Modifier.weight(1f)) { ActionText("Guardar") }
             }
         }
     }
 }
 
-}
-
-private val MotivationOptions = listOf("🤕", "😞", "🙂", "😄", "🔥")
-
 @Composable
-private fun MotivationSelector(
-    title: String,
-    selected: String?,
-    backgroundColor: Color,
-    onSelected: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(text = title, color = Color.White)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(8.dp))
-                .clip(RoundedCornerShape(8.dp))
-        ) {
-            MotivationOptions.forEachIndexed { index, motivation ->
-                val isSelected = selected == motivation
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(if (isSelected) Color.White else backgroundColor)
-                        .clickable { onSelected(motivation) }
-                        .border(
-                            width = if (index == MotivationOptions.lastIndex) 0.dp else 0.5.dp,
-                            color = Color.White
-                        )
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = motivation,
-                        fontSize = 24.sp
-                    )
+private fun MotivationSelector(title: String, selected: String?, background: Color, onSelected: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().background(background, RoundedCornerShape(12.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title)
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).border(1.dp, Color.White, RoundedCornerShape(8.dp))) {
+            WorkoutMotivations.forEach { emoji ->
+                Box(Modifier.weight(1f).background(if (emoji == selected) Color.White else background)
+                    .clickable { onSelected(emoji) }.semanticsLabel("$title, $emoji")
+                    .border(0.5.dp, Color.White).padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+                    Text(emoji, fontSize = 24.sp)
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun TrainingColumnTitle(text: String, modifier: Modifier) {
-    Text(
-        text = text,
-        modifier = modifier,
-        color = Color.White,
-        textAlign = TextAlign.Center
-    )
-}
-
-@Composable
-private fun TrainingValueField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    requestFocus: Boolean,
-    onFocused: () -> Unit,
-    onKeyboardAction: () -> Unit,
-    isLast: Boolean,
-    boldPlaceholder: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    val requester = remember { FocusRequester() }
-    LaunchedEffect(requestFocus) {
-        if (requestFocus) requester.requestFocus()
-    }
-    OutlinedTextField(
-        value = value,
-        onValueChange = { newValue ->
-            val normalized = newValue.replace('.', ',')
-            if (normalized.isDecimalInput()) onValueChange(normalized)
-        },
-        modifier = modifier.focusRequester(requester).onFocusChanged {
-            if (it.isFocused) onFocused()
-        },
-        placeholder = {
-            Text(
-                text = placeholder,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                fontWeight = if (boldPlaceholder) FontWeight.Bold else FontWeight.Normal
-            )
-        },
-        textStyle = TextStyle(textAlign = TextAlign.Center),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = if (isLast) ImeAction.Done else ImeAction.Next
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { onKeyboardAction() },
-            onDone = { onKeyboardAction() }
-        ),
-        singleLine = true
-    )
-}
-
-private fun String.isDecimalInput(): Boolean = matches(Regex("\\d*(,\\d*)?"))
-
-private fun String.isValidDecimal(): Boolean = matches(Regex("\\d+(,\\d+)?"))
-
-
-private fun List<TrainingExerciseInput>.updateSet(
-    exerciseId: Long,
-    setNumber: Int,
-    update: (TrainingSetInput) -> TrainingSetInput
-): List<TrainingExerciseInput> = map { exercise ->
-    if (exercise.id == exerciseId) {
-        exercise.copy(
-            sets = exercise.sets.map { set ->
-                if (set.number == setNumber) update(set) else set
-            }
-        )
-    } else {
-        exercise
-    }
-}
-
-private fun List<TrainingExerciseInput>.addSet(
-    exerciseId: Long,
-    kilogramsPlaceholder: String
-): List<TrainingExerciseInput> = map { exercise ->
-    if (exercise.id == exerciseId) {
-        val nextSetNumber = (exercise.sets.maxOfOrNull { it.number } ?: 0) + 1
-        exercise.copy(
-            sets = exercise.sets + TrainingSetInput(
-                number = nextSetNumber,
-                kilogramsPlaceholder = kilogramsPlaceholder
-            )
-        )
-    } else {
-        exercise
     }
 }

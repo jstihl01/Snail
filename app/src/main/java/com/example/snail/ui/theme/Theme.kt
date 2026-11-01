@@ -1,8 +1,10 @@
 package com.example.snail.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
 private val SnailColorScheme = darkColorScheme(
     primary = SnailWhite,
@@ -34,6 +36,7 @@ fun SnailTheme(
     MaterialTheme(
         colorScheme = SnailColorScheme,
         typography = Typography,
-        content = content
-    )
+    ) {
+        CompositionLocalProvider(LocalContentColor provides SnailWhite, content = content)
+    }
 }

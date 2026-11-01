@@ -9,7 +9,7 @@ object ExerciseStorage {
     private const val PreferencesName = "snail_exercises"
     private const val ExercisesKey = "exercises"
 
-    fun load(context: Context): List<ExerciseItem> {
+    fun load(context: Context, strict: Boolean = false): List<ExerciseItem> {
         val serialized = context
             .getSharedPreferences(PreferencesName, Context.MODE_PRIVATE)
             .getString(ExercisesKey, null)
@@ -27,7 +27,7 @@ object ExerciseStorage {
                     )
                 )
             }
-        }.getOrDefault(emptyList())
+        }.getOrElse { if (strict) throw it else emptyList() }
     }
 
     fun save(context: Context, exercises: List<ExerciseItem>) {

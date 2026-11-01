@@ -15,7 +15,7 @@ object WorkoutStorage {
     private const val PreferencesName = "snail_workouts"
     private const val WorkoutsKey = "workouts"
 
-    fun load(context: Context): List<SavedWorkout> {
+    fun load(context: Context, strict: Boolean = false, migrate: Boolean = true): List<SavedWorkout> {
         val serialized = context
             .getSharedPreferences(PreferencesName, Context.MODE_PRIVATE)
             .getString(WorkoutsKey, null)
@@ -68,8 +68,8 @@ object WorkoutStorage {
                     }
                 )
             }
-        }.getOrDefault(emptyList())
-        if (needsMigration) save(context, loaded)
+        }.getOrElse { if (strict) throw it else return emptyList() }
+        if (needsMigration && migrate) save(context, loaded)
         return loaded
     }
 

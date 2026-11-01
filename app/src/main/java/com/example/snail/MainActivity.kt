@@ -1,229 +1,117 @@
 package com.example.snail
 
 import android.os.Bundle
-import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import com.example.snail.data.ExerciseStorage
-import com.example.snail.data.ExerciseNameMigration
-import com.example.snail.data.RoutineStorage
-import com.example.snail.data.WorkoutStorage
-import com.example.snail.ui.models.RoutineExercise
-import com.example.snail.ui.models.SavedRoutine
-import com.example.snail.ui.models.SavedWorkout
-import com.example.snail.ui.screens.AñadirEjercicioScreen
-import com.example.snail.ui.screens.ExerciseItem
-import com.example.snail.ui.screens.sortedByExerciseName
-import com.example.snail.ui.screens.MisRutinasScreen
-import com.example.snail.ui.screens.MainScreen
-import com.example.snail.ui.screens.NuevoEntrenamientoScreen
-import com.example.snail.ui.screens.NuevaRutinaScreen
+import com.example.snail.data.*
+import com.example.snail.ui.models.*
+import com.example.snail.ui.screens.*
 import com.example.snail.ui.theme.SnailTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ExerciseNameMigration.apply(this)
         enableEdgeToEdge()
-        setContent {
-            SnailTheme {
-                val context = LocalContext.current
-                val storedRoutines = remember { RoutineStorage.load(context) }
-                val storedExercises = remember { ExerciseStorage.load(context) }
-                val storedWorkouts = remember { WorkoutStorage.load(context) }
-                var currentScreen by rememberSaveable { mutableStateOf(AppScreen.MAIN) }
-                var routineName by rememberSaveable { mutableStateOf("") }
-                var exerciseDrafts by remember { mutableStateOf(storedExercises) }
-                var routineExercises by remember { mutableStateOf(emptyList<RoutineExercise>()) }
-                var nextRoutineExerciseId by rememberSaveable { mutableStateOf(0L) }
-                var savedRoutines by remember { mutableStateOf(storedRoutines) }
-                var activeTrainingRoutine by remember { mutableStateOf<SavedRoutine?>(null) }
-                var savedWorkouts by remember { mutableStateOf(storedWorkouts) }
-                var nextWorkoutId by rememberSaveable {
-                    mutableStateOf((storedWorkouts.maxOfOrNull { it.id } ?: -1L) + 1L)
-                }
-                var nextRoutineId by rememberSaveable {
-                    mutableStateOf((storedRoutines.maxOfOrNull { it.id } ?: -1L) + 1L)
-                }
-
-                fun clearExerciseSelections() {
-                    val unselectedExercises = exerciseDrafts
-                        .filter { it.name.isNotBlank() }
-                        .map {
-                            it.copy(
-                                selected = false,
-                                selectionOrder = null,
-                                confirmed = true
-                            )
-                        }
-                    exerciseDrafts = unselectedExercises
-                    ExerciseStorage.save(context, unselectedExercises)
-                }
-
-                fun cancelNewRoutine() {
-                    routineName = ""
-                    routineExercises = emptyList()
-                    currentScreen = AppScreen.MAIN
-                }
-
-                BackHandler(enabled = currentScreen != AppScreen.MAIN) {
-                    when (currentScreen) {
-                        AppScreen.NEW_EXERCISE -> {
-                            clearExerciseSelections()
-                            currentScreen = AppScreen.NEW_ROUTINE
-                        }
-                        AppScreen.NEW_ROUTINE -> cancelNewRoutine()
-                        AppScreen.NEW_TRAINING -> {
-                            activeTrainingRoutine = null
-                            currentScreen = AppScreen.TRAINING
-                        }
-                        else -> currentScreen = AppScreen.MAIN
-                    }
-                }
-
-                when (currentScreen) {
-                    AppScreen.MAIN -> MainScreen(
-                        workouts = savedWorkouts,
-                        canStartTraining = savedRoutines.isNotEmpty(),
-                        onNewRoutine = { currentScreen = AppScreen.NEW_ROUTINE },
-                        onNewTraining = { currentScreen = AppScreen.TRAINING },
-                        onDeleteWorkout = { workoutId ->
-                            val updatedWorkouts = savedWorkouts.filterNot { it.id == workoutId }
-                            savedWorkouts = updatedWorkouts
-                            WorkoutStorage.save(context, updatedWorkouts)
-                        }
-                    )
-
-                    AppScreen.NEW_ROUTINE -> NuevaRutinaScreen(
-                        routineName = routineName,
-                        onRoutineNameChange = { routineName = it },
-                        exerciseItems = routineExercises,
-                        onExerciseItemsChange = { routineExercises = it },
-                        onBack = { cancelNewRoutine() },
-                        onNewExercise = {
-                            val sortedExercises = exerciseDrafts.sortedByExerciseName()
-                            exerciseDrafts = sortedExercises
-                            ExerciseStorage.save(context, sortedExercises)
-                            currentScreen = AppScreen.NEW_EXERCISE
-                        },
-                        onSave = {
-                            val updatedRoutines = savedRoutines + SavedRoutine(
-                                id = nextRoutineId++,
-                                name = routineName.trim(),
-                                exercises = routineExercises.map { exercise ->
-                                    exercise.copy(
-                                        series = exercise.series.trim().replace('.', ','),
-                                        minRepetitions = exercise.minRepetitions.trim().replace('.', ','),
-                                        maxRepetitions = exercise.maxRepetitions.trim().replace('.', ','),
-                                        rir = exercise.rir.trim().replace('.', ',')
-                                    )
-                                }
-                            )
-                            savedRoutines = updatedRoutines
-                            RoutineStorage.save(context, updatedRoutines)
-                            routineName = ""
-                            routineExercises = emptyList()
-                            currentScreen = AppScreen.MAIN
-                        }
-                    )
-
-                    AppScreen.NEW_EXERCISE -> AñadirEjercicioScreen(
-                        exerciseItems = exerciseDrafts,
-                        onExerciseItemsChange = { updatedExercises ->
-                            exerciseDrafts = updatedExercises
-                            ExerciseStorage.save(context, updatedExercises)
-                        },
-                        onBack = {
-                            clearExerciseSelections()
-                            currentScreen = AppScreen.NEW_ROUTINE
-                        },
-                        onAdd = { selectedNames ->
-                            val newExercises = selectedNames.map { name ->
-                                RoutineExercise(
-                                    id = nextRoutineExerciseId++,
-                                    name = name
-                                )
-                            }
-                            routineExercises = routineExercises + newExercises
-                            clearExerciseSelections()
-                            currentScreen = AppScreen.NEW_ROUTINE
-                        }
-                    )
-
-                    AppScreen.TRAINING -> MisRutinasScreen(
-                        routines = savedRoutines,
-                        onBack = { currentScreen = AppScreen.MAIN },
-                        onDeleteRoutine = { routineId ->
-                            val updatedRoutines = savedRoutines.filterNot { it.id == routineId }
-                            savedRoutines = updatedRoutines
-                            RoutineStorage.save(context, updatedRoutines)
-                        },
-                        onStart = { routine ->
-                            activeTrainingRoutine = routine
-                            currentScreen = AppScreen.NEW_TRAINING
-                        },
-                        onRoutineColorChange = { routineId, colorIndex ->
-                            val routine = savedRoutines.first { it.id == routineId }
-                            val updatedRoutines = savedRoutines.map {
-                                if (it.id == routineId) it.copy(colorIndex = colorIndex) else it
-                            }
-                            savedRoutines = updatedRoutines
-                            RoutineStorage.save(context, updatedRoutines)
-                            val updatedWorkouts = savedWorkouts.map { workout ->
-                                if (workout.routineId == routineId ||
-                                    (workout.routineId == null &&
-                                        workout.routineName == routine.name)) {
-                                    workout.copy(colorIndex = colorIndex, routineId = routineId)
-                                } else workout
-                            }
-                            savedWorkouts = updatedWorkouts
-                            WorkoutStorage.save(context, updatedWorkouts)
-                        }
-                    )
-
-                    AppScreen.NEW_TRAINING -> activeTrainingRoutine?.let { routine ->
-                        NuevoEntrenamientoScreen(
-                            routine = routine,
-                            workouts = savedWorkouts,
-                            onBack = {
-                                activeTrainingRoutine = null
-                                currentScreen = AppScreen.TRAINING
-                            },
-                            onSave = { completedExercises, startMotivation, endMotivation ->
-                                val updatedWorkouts = savedWorkouts + SavedWorkout(
-                                    id = nextWorkoutId++,
-                                    routineName = routine.name,
-                                    completedAt = System.currentTimeMillis(),
-                                    colorIndex = routine.colorIndex,
-                                    routineId = routine.id,
-                                    startMotivation = startMotivation,
-                                    endMotivation = endMotivation,
-                                    exercises = completedExercises
-                                )
-                                savedWorkouts = updatedWorkouts
-                                WorkoutStorage.save(context, updatedWorkouts)
-                                activeTrainingRoutine = null
-                                currentScreen = AppScreen.MAIN
-                            }
-                        )
-                    }
-                }
-            }
-        }
+        setContent { SnailTheme { SnailApp() } }
     }
 }
 
-private enum class AppScreen {
-    MAIN,
-    NEW_ROUTINE,
-    NEW_EXERCISE,
-    TRAINING,
-    NEW_TRAINING
+private enum class AppScreen { MAIN, ROUTINE, EXERCISES, ROUTINES, TRAINING, PROGRESS }
+
+@Composable
+private fun SnailApp() {
+    val context = LocalContext.current
+    val loaded = remember { runCatching { AppDataStorage.load(context) } }
+    val initial = loaded.getOrNull()
+    if (initial == null) { Text("No se pudieron abrir los datos. Se han conservado: ${loaded.exceptionOrNull()?.message}"); return }
+    var data by remember { mutableStateOf(initial) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var current by remember { mutableStateOf(AppScreen.MAIN) }
+    var nextId by remember { mutableLongStateOf(data.nextId()) }
+    var routineName by remember { mutableStateOf("") }
+    var routineExercises by remember { mutableStateOf(emptyList<RoutineExercise>()) }
+    var editingRoutine by remember { mutableStateOf<SavedRoutine?>(null) }
+    var trainingRoutine by remember { mutableStateOf<SavedRoutine?>(null) }
+    var editingWorkout by remember { mutableStateOf<SavedWorkout?>(null) }
+    var transfer by remember { mutableStateOf(false) }
+
+    fun save(updated: AppData): Boolean = try {
+        AppDataStorage.save(context, updated)
+        data = updated
+        nextId = maxOf(nextId, updated.nextId())
+        true
+    } catch (exception: Exception) { error = exception.message ?: "Error al guardar"; false }
+    fun cancelRoutine() {
+        routineName = ""; routineExercises = emptyList()
+        current = if (editingRoutine == null) AppScreen.MAIN else AppScreen.ROUTINES
+        editingRoutine = null
+    }
+    fun closeExercises() {
+        save(data.copy(exercises = data.exercises.filter { it.name.isNotBlank() }.map { it.copy(selected = false, selectionOrder = null) }))
+        current = AppScreen.ROUTINE
+    }
+    fun changeExercises(items: List<ExerciseItem>) {
+        fun catalogue(values: List<ExerciseItem>) = values.map { it.copy(selected = false, selectionOrder = null) }
+        val updated = data.copy(exercises = items)
+        // Selection is transient; avoid rewriting all history on every catalogue tap.
+        if (catalogue(items) == catalogue(data.exercises)) data = updated else save(updated)
+    }
+    BackHandler(enabled = current == AppScreen.EXERCISES || current == AppScreen.ROUTINES || current == AppScreen.PROGRESS) {
+        if (current == AppScreen.EXERCISES) closeExercises() else current = AppScreen.MAIN
+    }
+    when (current) {
+        AppScreen.MAIN -> MainScreen(data.workouts, data.routines.isNotEmpty(),
+            onNewRoutine = { editingRoutine = null; routineName = ""; routineExercises = emptyList(); current = AppScreen.ROUTINE },
+            onNewTraining = { current = AppScreen.ROUTINES }, onDeleteWorkout = { id -> save(data.copy(workouts = data.workouts.filterNot { it.id == id })) },
+            onEditWorkout = { workout ->
+                editingWorkout = workout
+                trainingRoutine = SavedRoutine(workout.routineId ?: -1, workout.routineName, emptyList(), workout.colorIndex)
+                current = AppScreen.TRAINING
+            }, onTransfer = { transfer = true }, onProgress = { current = AppScreen.PROGRESS })
+        AppScreen.ROUTINE -> NuevaRutinaScreen(routineName, { routineName = it }, routineExercises, { routineExercises = it },
+            onBack = ::cancelRoutine, onNewExercise = { current = AppScreen.EXERCISES }, onSave = {
+                val previous = editingRoutine
+                val updated = if (previous == null)
+                    data.copy(routines = data.routines + SavedRoutine(nextId++, routineName.trim(), routineExercises))
+                else data.editRoutine(previous.id, nextId++, routineName, routineExercises)
+                if (save(updated)) cancelRoutine()
+            })
+        AppScreen.EXERCISES -> AñadirEjercicioScreen(data.exercises, ::changeExercises,
+            onBack = ::closeExercises, nextId = { nextId++ }, onAdd = { selected ->
+                var id = (routineExercises.maxOfOrNull { it.id } ?: -1) + 1
+                routineExercises = routineExercises + selected.map {
+                    RoutineExercise(id++, it.name, note = it.note, muscleGroup = it.muscleGroup, isCardio = it.isCardio, sourceExerciseId = it.id)
+                }
+                closeExercises()
+            })
+        AppScreen.ROUTINES -> MisRutinasScreen(data.routines, data.folders, onBack = { current = AppScreen.MAIN },
+            onDeleteRoutine = { id -> save(data.copy(routines = data.routines.filterNot { it.id == id })) },
+            onStart = { trainingRoutine = it; editingWorkout = null; current = AppScreen.TRAINING },
+            onEdit = { editingRoutine = it; routineName = it.name; routineExercises = it.exercises; current = AppScreen.ROUTINE },
+            onCreateFolder = { save(data.copy(folders = data.folders + RoutineFolder(nextId++, it))) },
+            onAssign = { id, folder -> save(data.copy(routines = data.routines.map { if (it.id == id) it.copy(folderId = folder) else it })) },
+            onMove = { id, direction -> save(data.moveRoutine(id, direction)) },
+            onRoutineColorChange = { id, color -> save(data.changeRoutineColor(id, color)) })
+        AppScreen.TRAINING -> trainingRoutine?.let { routine ->
+            NuevoEntrenamientoScreen(routine, data.workouts, onBack = {
+                current = if (editingWorkout == null) AppScreen.ROUTINES else AppScreen.MAIN
+                trainingRoutine = null; editingWorkout = null
+            }, editing = editingWorkout, onSave = { exercises, start, end ->
+                val prior = editingWorkout
+                val workout = prior?.copy(exercises = exercises, startMotivation = start, endMotivation = end)
+                    ?: SavedWorkout(nextId++, routine.name, System.currentTimeMillis(), exercises, routine.colorIndex, routine.id, start, end)
+                val updated = if (prior == null) data.copy(workouts = data.workouts + workout) else data.editWorkout(workout)
+                if (save(updated)) { editingWorkout = null; trainingRoutine = null; current = AppScreen.MAIN }
+            })
+        }
+        AppScreen.PROGRESS -> ProgresoScreen(data.workouts) { current = AppScreen.MAIN }
+    }
+    if (transfer) DataTransferDialog(data, onImport = { save(it) }, onDismiss = { transfer = false })
+    error?.let { message -> androidx.compose.material3.AlertDialog(onDismissRequest = { error = null },
+        text = { Text(message) }, confirmButton = { androidx.compose.material3.TextButton(onClick = { error = null }) { Text("Cerrar", maxLines = 1) } }) }
 }

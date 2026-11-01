@@ -12,7 +12,7 @@ object RoutineStorage {
     private const val PreferencesName = "snail_routines"
     private const val RoutinesKey = "routines"
 
-    fun load(context: Context): List<SavedRoutine> {
+    fun load(context: Context, strict: Boolean = false, migrate: Boolean = true): List<SavedRoutine> {
         val serialized = context
             .getSharedPreferences(PreferencesName, Context.MODE_PRIVATE)
             .getString(RoutinesKey, null)
@@ -46,8 +46,8 @@ object RoutineStorage {
                     }
                 )
             }
-        }.getOrNull() ?: return emptyList()
-        if (needsMigration) save(context, loaded)
+        }.getOrElse { if (strict) throw it else return emptyList() }
+        if (needsMigration && migrate) save(context, loaded)
         return loaded
     }
 

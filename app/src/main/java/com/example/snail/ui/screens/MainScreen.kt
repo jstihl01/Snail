@@ -37,14 +37,10 @@ import com.example.snail.ui.components.TrashIcon
 import com.example.snail.ui.components.bottomActionsLayout
 import com.example.snail.ui.models.SavedWorkout
 import com.example.snail.ui.theme.routineHistoryColorFor
-import java.time.Instant
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.temporal.TemporalAdjusters
-
-private val workoutDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun MainScreen(
@@ -52,7 +48,10 @@ fun MainScreen(
     canStartTraining: Boolean,
     onNewRoutine: () -> Unit,
     onNewTraining: () -> Unit,
-    onDeleteWorkout: (Long) -> Unit
+    onDeleteWorkout: (Long) -> Unit,
+    onEditWorkout: (SavedWorkout) -> Unit,
+    onTransfer: () -> Unit,
+    onProgress: () -> Unit
 ) {
     val confirmation = rememberConfirmationState()
     val historyListState = rememberLazyListState(
@@ -71,12 +70,14 @@ fun MainScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.End) {
+            IconButton(onClick = onTransfer, modifier = Modifier.semanticsLabel("Exportar o importar datos")) { Text("⇅") }
+        }
         LazyColumn(
             state = historyListState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Bottom)
         ) {
@@ -135,6 +136,9 @@ fun MainScreen(
                             text = "${workout.startMotivation} ➜ ${workout.endMotivation}",
                             color = historyContentColor
                         )
+                        IconButton(onClick = { onEditWorkout(workout) }, modifier = Modifier.semanticsLabel("Editar entrenamiento")) {
+                            Text("✎", color = historyContentColor)
+                        }
                     }
 
                     workout.exercises.forEach { exercise ->
@@ -159,12 +163,13 @@ fun MainScreen(
                                         .height(IntrinsicSize.Min)
                                 ) {
                                     WorkoutCell(
-                                        set.number.toString(),
+                                        "${set.number}${if (set.isExtra) " +" else ""}",
                                         Modifier.weight(1f),
                                         historyContentColor
                                     )
                                     WorkoutCell(
-                                        text = "${set.kilograms} KG × ${set.repetitions} Reps.",
+                                        text = if (exercise.isCardio) "${set.intensity} Intensidad × ${set.minutes} Minutos"
+                                            else "${set.kilograms} KG × ${set.repetitions} Reps.",
                                         modifier = Modifier.weight(2f),
                                         color = historyContentColor
                                     )
@@ -177,6 +182,8 @@ fun MainScreen(
             }
         }
 
+        OutlinedButton(onClick = onProgress, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+            border = BorderStroke(1.dp, Color.White), colors = outlinedActionColors()) { ActionText("Progreso") }
         Row(
             modifier = Modifier.bottomActionsLayout()
         ) {
@@ -191,7 +198,7 @@ fun MainScreen(
                     contentColor = Color.White
                 )
             ) {
-                Text("+ Rutina")
+                ActionText("+ Rutina")
             }
 
             Button(
@@ -207,7 +214,7 @@ fun MainScreen(
                     disabledContentColor = com.example.snail.ui.theme.SnailLightGray
                 )
             ) {
-                Text("+ Entrenamiento")
+                ActionText("+ Entrenamiento")
             }
         }
     }
@@ -215,19 +222,18 @@ fun MainScreen(
 
 }
 
-private fun Long.weekStart(): LocalDate? {
+private fun Long.weekStart(): String? {
     if (this <= 0L) return null
-    return Instant.ofEpochMilli(this)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate()
-        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val calendar = Calendar.getInstance().apply {
+        timeInMillis = this@weekStart
+        add(Calendar.DAY_OF_MONTH, -((get(Calendar.DAY_OF_WEEK) + 5) % 7))
+    }
+    return SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(calendar.time)
 }
 
 private fun Long.toDisplayDateTime(): String {
     if (this <= 0L) return "Fecha y hora no disponibles"
-    return Instant.ofEpochMilli(this)
-        .atZone(ZoneId.systemDefault())
-        .format(workoutDateFormatter)
+    return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(this))
 }
 
 @Composable

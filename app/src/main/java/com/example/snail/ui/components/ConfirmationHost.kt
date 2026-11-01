@@ -61,11 +61,11 @@ fun ConfirmationHost(state: ConfirmationState, content: @Composable () -> Unit) 
                     OutlinedButton(onClick = state::dismiss, modifier = Modifier.weight(1f),
                         border = BorderStroke(1.dp, Color.White),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Black, contentColor = Color.White)) { Text("No") }
+                            containerColor = Color.Black, contentColor = Color.White)) { ActionText("No") }
                     OutlinedButton(onClick = state::confirm, modifier = Modifier.weight(1f),
                         border = BorderStroke(1.dp, ConfirmationRed),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Black, contentColor = ConfirmationRed)) { Text("Sí") }
+                            containerColor = Color.Black, contentColor = ConfirmationRed)) { ActionText("Sí") }
                 }
             }
         }

@@ -1,340 +1,99 @@
 package com.example.snail.ui.screens
-import com.example.snail.ui.components.*
-import androidx.activity.compose.BackHandler
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.snail.ui.components.TrashIcon
-import com.example.snail.ui.components.bottomActionsLayout
-import com.example.snail.ui.models.RoutineExercise
+import com.example.snail.ui.components.*
+import com.example.snail.ui.models.*
 import com.example.snail.ui.theme.SnailDarkGray
-import com.example.snail.ui.theme.SnailLightGray
-
-private data class RoutineFieldKey(val exerciseId: Long, val field: Int)
 
 @Composable
-fun NuevaRutinaScreen(
-    routineName: String,
-    onRoutineNameChange: (String) -> Unit,
-    exerciseItems: List<RoutineExercise>,
-    onExerciseItemsChange: (List<RoutineExercise>) -> Unit,
-    onBack: () -> Unit,
-    onNewExercise: () -> Unit,
-    onSave: () -> Unit
-) {
+fun NuevaRutinaScreen(routineName: String, onRoutineNameChange: (String) -> Unit,
+    exerciseItems: List<RoutineExercise>, onExerciseItemsChange: (List<RoutineExercise>) -> Unit,
+    onBack: () -> Unit, onNewExercise: () -> Unit, onSave: () -> Unit) {
     val confirmation = rememberConfirmationState()
     val requestExit: () -> Unit = {
-        if (routineName.isNotEmpty() || exerciseItems.isNotEmpty()) {
-            confirmation.request(ExitConfirmation, onBack)
-        } else onBack()
+        if (routineName.isNotEmpty() || exerciseItems.isNotEmpty()) confirmation.request(ExitConfirmation, onBack) else onBack()
     }
     BackHandler { requestExit() }
-    val canSave = routineName.isNotBlank() && exerciseItems.isNotEmpty() && exerciseItems.all { exercise ->
+    val valid = routineName.isNotBlank() && exerciseItems.isNotEmpty() && exerciseItems.all { exercise ->
         val minimum = exercise.minRepetitions.replace(',', '.').toBigDecimalOrNull()
         val maximum = exercise.maxRepetitions.replace(',', '.').toBigDecimalOrNull()
-        exercise.series.isNotBlank() && minimum != null && minimum.signum() >= 0 &&
-            (exercise.maxRepetitions.isBlank() || (maximum != null && maximum >= minimum))
+        (exercise.series.toIntOrNull() ?: 0) in 1..500 && if (exercise.isCardio)
+            exercise.intensity.validNumber() && exercise.minutes.validNumber()
+        else exercise.minRepetitions.validNumber() &&
+            (exercise.maxRepetitions.isBlank() || (maximum != null && minimum != null && maximum >= minimum)) &&
+            exercise.rir.validRirTarget()
     }
-    val listState = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
+    val list = rememberLazyListState()
+    val manager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    val fieldOrder = exerciseItems.flatMap { exercise ->
-        List(4) { field -> RoutineFieldKey(exercise.id, field) }
+    var pending by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val order = exerciseItems.flatMapIndexed { index, exercise -> (0 until if (exercise.isCardio) 3 else 4).map { index to it } }
+    LaunchedEffect(pending) { pending?.let { if (list.layoutInfo.visibleItemsInfo.none { info -> info.index == it.first }) list.scrollToItem(it.first) } }
+    fun next(current: Pair<Int, Int>) {
+        val target = order.getOrNull(order.indexOf(current) + 1)
+        if (target == null) { manager.clearFocus(); keyboard?.hide() } else pending = target
     }
-    var pendingFocus by remember { mutableStateOf<RoutineFieldKey?>(null) }
-
-    LaunchedEffect(pendingFocus) {
-        val target = pendingFocus ?: return@LaunchedEffect
-        val index = exerciseItems.indexOfFirst { it.id == target.exerciseId }
-        if (index >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == index }) {
-            listState.scrollToItem(index)
-        }
-    }
-
-    fun advanceFocus(current: RoutineFieldKey) {
-        val next = fieldOrder.getOrNull(fieldOrder.indexOf(current) + 1)
-        if (next == null) {
-            focusManager.clearFocus()
-            keyboard?.hide()
-        } else {
-            pendingFocus = next
-        }
-    }
-
     ConfirmationHost(confirmation) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .imePadding()
-    ) {
-        OutlinedTextField(
-            value = routineName,
-            onValueChange = onRoutineNameChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            placeholder = {
-                Text(
-                    text = "Nombre de la Rutina",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            },
-            textStyle = TextStyle(textAlign = TextAlign.Center),
-            singleLine = true
-        )
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(
-                items = exerciseItems,
-                key = { it.id }
-            ) { exercise ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SnailDarkGray)
-                        .padding(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = {
-                                onExerciseItemsChange(
-                                    exerciseItems.filterNot { it.id == exercise.id }
-                                )
-                            }
-                        ) {
-                            TrashIcon()
+        Column(Modifier.fillMaxSize().background(Color.Black).imePadding()) {
+            OutlinedTextField(routineName, onRoutineNameChange, Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
+                placeholder = { Text("Nombre de la Rutina", Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                textStyle = TextStyle(textAlign = TextAlign.Center), singleLine = true)
+            LazyColumn(state = list, modifier = Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                itemsIndexed(exerciseItems, key = { _, exercise -> exercise.id }) { index, exercise ->
+                    Column(Modifier.fillMaxWidth().background(SnailDarkGray, RoundedCornerShape(12.dp)).padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { onExerciseItemsChange(exerciseItems.filterNot { it.id == exercise.id }) }) { TrashIcon() }
+                            Text(exercise.name, Modifier.weight(1f))
                         }
-                        Text(
-                            text = exercise.name,
-                            modifier = Modifier.weight(1f),
-                            color = Color.White
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ExerciseValueField(
-                            value = exercise.series,
-                            onValueChange = { value ->
-                                onExerciseItemsChange(exerciseItems.map {
-                                    if (it.id == exercise.id) it.copy(series = value) else it
-                                })
-                            },
-                            placeholder = "Series*",
-                            requestFocus = pendingFocus == RoutineFieldKey(exercise.id, 0),
-                            onFocused = { if (pendingFocus == RoutineFieldKey(exercise.id, 0)) pendingFocus = null },
-                            onKeyboardAction = { advanceFocus(RoutineFieldKey(exercise.id, 0)) },
-                            isLast = RoutineFieldKey(exercise.id, 0) == fieldOrder.lastOrNull(),
-                            modifier = Modifier.weight(1f)
-                        )
-                        ExerciseValueField(
-                            value = exercise.minRepetitions,
-                            onValueChange = { value ->
-                                onExerciseItemsChange(exerciseItems.map {
-                                    if (it.id == exercise.id) it.copy(minRepetitions = value) else it
-                                })
-                            },
-                            placeholder = "Mín. Reps.*",
-                            requestFocus = pendingFocus == RoutineFieldKey(exercise.id, 1),
-                            onFocused = { if (pendingFocus == RoutineFieldKey(exercise.id, 1)) pendingFocus = null },
-                            onKeyboardAction = { advanceFocus(RoutineFieldKey(exercise.id, 1)) },
-                            isLast = RoutineFieldKey(exercise.id, 1) == fieldOrder.lastOrNull(),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ExerciseValueField(
-                            value = exercise.maxRepetitions,
-                            onValueChange = { value ->
-                                onExerciseItemsChange(exerciseItems.map {
-                                    if (it.id == exercise.id) it.copy(maxRepetitions = value) else it
-                                })
-                            },
-                            placeholder = "Máx. Reps.",
-                            requestFocus = pendingFocus == RoutineFieldKey(exercise.id, 2),
-                            onFocused = { if (pendingFocus == RoutineFieldKey(exercise.id, 2)) pendingFocus = null },
-                            onKeyboardAction = { advanceFocus(RoutineFieldKey(exercise.id, 2)) },
-                            isLast = RoutineFieldKey(exercise.id, 2) == fieldOrder.lastOrNull(),
-                            modifier = Modifier.weight(1f)
-                        )
-                        ExerciseValueField(
-                            value = exercise.rir,
-                            onValueChange = { value ->
-                                onExerciseItemsChange(exerciseItems.map {
-                                    if (it.id == exercise.id) it.copy(rir = value) else it
-                                })
-                            },
-                            placeholder = "RIR",
-                            requestFocus = pendingFocus == RoutineFieldKey(exercise.id, 3),
-                            onFocused = { if (pendingFocus == RoutineFieldKey(exercise.id, 3)) pendingFocus = null },
-                            onKeyboardAction = { advanceFocus(RoutineFieldKey(exercise.id, 3)) },
-                            isLast = RoutineFieldKey(exercise.id, 3) == fieldOrder.lastOrNull(),
-                            modifier = Modifier.weight(1f)
-                        )
+                        if (exercise.note.isNotBlank()) Text(exercise.note, style = MaterialTheme.typography.bodySmall)
+                        val values = if (exercise.isCardio) listOf(exercise.series, exercise.intensity, exercise.minutes)
+                            else listOf(exercise.series, exercise.minRepetitions, exercise.maxRepetitions, exercise.rir)
+                        val hints = if (exercise.isCardio) listOf("Series*", "Intensidad*", "Minutos*")
+                            else listOf("Series*", "Mín. Reps.*", "Máx. Reps.", "RIR")
+                        values.indices.chunked(2).forEach { columns ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                columns.forEach { field ->
+                                    val key = index to field
+                                    NumberField(values[field], { value ->
+                                        val updated = when (field) {
+                                            0 -> exercise.copy(series = value)
+                                            1 -> if (exercise.isCardio) exercise.copy(intensity = value) else exercise.copy(minRepetitions = value)
+                                            2 -> if (exercise.isCardio) exercise.copy(minutes = value) else exercise.copy(maxRepetitions = value)
+                                            else -> exercise.copy(rir = value)
+                                        }
+                                        onExerciseItemsChange(exerciseItems.map { if (it.id == exercise.id) updated else it })
+                                    }, hints[field], Modifier.weight(1f), focus = pending == key,
+                                        onFocused = { if (pending == key) pending = null }, onNext = { next(key) }, last = key == order.lastOrNull(), integer = field == 0,
+                                        allowRange = !exercise.isCardio && field == 3, label = "${exercise.name}, ${hints[field]}")
+                                }
+                                if (columns.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
+                item { OutlinedButton(onNewExercise, Modifier.fillMaxWidth(), border = BorderStroke(1.dp, Color.White), colors = outlinedActionColors()) { ActionText("Añadir Ejercicio") } }
             }
-
-            item(key = "add_exercise") {
-                OutlinedButton(
-                    onClick = onNewExercise,
-                    modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, Color.White),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Black,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("Añadir Ejercicio")
-                }
-            }
-        }
-
-        Column(
-            modifier = Modifier.bottomActionsLayout()
-        ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = requestExit,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 4.dp),
-                    border = BorderStroke(1.dp, Color.White),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Black,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("Cancelar")
-                }
-
-                Button(
-                    onClick = onSave,
-                    enabled = canSave,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
-                        disabledContainerColor = SnailDarkGray,
-                        disabledContentColor = SnailLightGray
-                    )
-                ) {
-                    Text("Guardar")
-                }
+            Row(Modifier.bottomActionsLayout(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(requestExit, Modifier.weight(1f), border = BorderStroke(1.dp, Color.White), colors = outlinedActionColors()) { ActionText("Cancelar") }
+                Button(onSave, Modifier.weight(1f), enabled = valid) { ActionText("Guardar") }
             }
         }
     }
 }
-
-}
-
-@Composable
-private fun ExerciseValueField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    requestFocus: Boolean,
-    onFocused: () -> Unit,
-    onKeyboardAction: () -> Unit,
-    isLast: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val requester = remember { FocusRequester() }
-    LaunchedEffect(requestFocus) {
-        if (requestFocus) requester.requestFocus()
-    }
-    OutlinedTextField(
-        value = value,
-        onValueChange = { newValue ->
-            val normalized = newValue.replace('.', ',')
-            if (normalized.isDecimalInput()) onValueChange(normalized)
-        },
-        modifier = modifier
-            .focusRequester(requester)
-            .onFocusChanged { if (it.isFocused) onFocused() },
-        placeholder = {
-            Text(
-                text = placeholder,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        },
-        textStyle = TextStyle(textAlign = TextAlign.Center),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = if (isLast) ImeAction.Done else ImeAction.Next
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { onKeyboardAction() },
-            onDone = { onKeyboardAction() }
-        ),
-        singleLine = true
-    )
-}
-
-private fun String.isDecimalInput(): Boolean = matches(Regex("\\d*(,\\d*)?"))
